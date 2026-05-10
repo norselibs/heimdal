@@ -1,0 +1,10 @@
+dependencies {
+    implementation 'javax.inject:javax.inject:1'
+
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.8.2")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.8.2")
+}
+
+test {
+    useJUnitPlatform()
+}

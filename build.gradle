@@ -1,0 +1,63 @@
+buildscript {
+    repositories {
+        maven {
+            url project.findProperty('RAVEN_URL')
+            allowInsecureProtocol = true
+        }
+    }
+    dependencies {
+        classpath 'io.raven:raven-gradle-plugin:1.0.2'
+    }
+}
+
+subprojects {
+
+    apply plugin: 'java'
+    apply plugin: 'java-library'
+    apply plugin: 'maven-publish'
+    apply plugin: 'io.raven.deploy'
+
+    group 'io.norselibs'
+    version '0.1-SNAPSHOT'
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven {
+            url project.findProperty('RAVEN_URL')
+            allowInsecureProtocol = true
+        }
+    }
+
+    dependencies {
+        testImplementation 'junit:junit:4.13.2'
+        implementation 'io.ran:ran-core:1.0.1'
+        implementation group: 'org.ow2.asm', name: 'asm', version: '9.2'
+        implementation group: 'org.ow2.asm', name: 'asm-util', version: '9.2'
+        implementation 'cglib:cglib:3.3.0'
+    }
+
+    raven {
+        url   = project.findProperty('RAVEN_URL')
+        token = project.findProperty('RAVEN_TOKEN')
+        autoPublish = false
+    }
+
+    publishing {
+        repositories {
+            maven {
+                name = "GitHubPackages"
+                url = uri("https://maven.pkg.github.com/norselibs/heimdal")
+                credentials {
+                    username = System.getenv("GITHUB_ACTOR")
+                    password = System.getenv("GITHUB_TOKEN")
+                }
+            }
+        }
+        publications {
+            gpr(MavenPublication) {
+                from(components.java)
+            }
+        }
+    }
+}

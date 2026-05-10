@@ -1,0 +1,13 @@
+pluginManagement {
+    repositories {
+        maven {
+            url = uri(providers.gradleProperty('RAVEN_URL').getOrElse(''))
+            allowInsecureProtocol = true
+        }
+        gradlePluginPortal()
+    }
+}
+
+rootProject.name = 'heimdal'
+include ':heimdal-core'
+include ':heimdal-integration-test'

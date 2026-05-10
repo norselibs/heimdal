@@ -1,0 +1,26 @@
+apply plugin: 'application'
+
+application {
+    mainClass = 'io.norselibs.heimdal.integrationtest.HeimdallApp'
+}
+
+dependencies {
+    implementation project(':heimdal-core')
+
+    implementation 'io.var-http:var-core:1.0.3'
+    implementation 'io.var-http:var-undertow:1.0.3'
+    implementation 'io.var-http:var-serializer-guice:1.0.3'
+
+    implementation 'io.odinjector:OdinJector:1.0.2'
+    implementation 'javax.inject:javax.inject:1'
+    compileOnly 'javax:javaee-web-api:8.0.1'
+    implementation 'io.undertow:undertow-core:2.2.18.Final'
+    implementation 'io.undertow:undertow-servlet:2.2.18.Final'
+    implementation 'io.undertow:undertow-websockets-jsr:2.2.18.Final'
+    implementation 'org.reflections:reflections:0.9.11'
+
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.10.2'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.10.2'
+
+    implementation 'org.slf4j:slf4j-simple:1.7.26'
+}
