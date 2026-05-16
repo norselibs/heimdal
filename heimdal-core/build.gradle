@@ -1,3 +1,29 @@
+def generatedSourcesDir = layout.buildDirectory.dir('generated-sources/heimdal')
+
+// FormBuilderSourceGenerator uses only JDK classes, so it can be compiled in isolation
+// before compileJava — breaking the bootstrap cycle.
+def compileGenerator = tasks.register('compileGenerator', JavaCompile) {
+    source = fileTree('src/main/java').include('**/FormBuilderSourceGenerator.java')
+    classpath = files()
+    destinationDirectory = layout.buildDirectory.dir('generator-classes')
+    sourceCompatibility = '17'
+    targetCompatibility = '17'
+}
+
+def generateFormBuilder = tasks.register('generateFormBuilder', JavaExec) {
+    dependsOn compileGenerator
+    // Include resources so ClassLoader.getResources("static/heimdal/fields.js") finds
+    // heimdal-core's own fields.js without needing a full runtimeClasspath.
+    classpath = files(compileGenerator.get().destinationDirectory) + sourceSets.main.resources.sourceDirectories
+    mainClass = 'io.norselibs.heimdal.FormBuilderSourceGenerator'
+    args = [generatedSourcesDir.get().asFile.absolutePath]
+    inputs.files(sourceSets.main.resources.srcDirs)
+    outputs.dir(generatedSourcesDir)
+}
+
+sourceSets.main.java.srcDir generatedSourcesDir
+tasks.named('compileJava') { dependsOn generateFormBuilder }
+
 dependencies {
     implementation 'javax.inject:javax.inject:1'
 

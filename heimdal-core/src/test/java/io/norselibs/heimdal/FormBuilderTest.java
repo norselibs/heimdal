@@ -13,23 +13,16 @@ public class FormBuilderTest {
 
     /** The example from the wire-protocol doc, built once and reused across tests. */
     private FormDefinition<Bike> bikeForm() {
-        return Form.of(Bike.class, new Bike())
-                .field(Bike::getName)
-                    .required()
-                .field(Bike::getBikeType)
-                    .required()
-                .section(
-                        q -> q.eq(Bike::getBikeType, BikeType.MOUNTAIN),
-                        section -> section
-                            .field(Bike::getSuspensionTravel)
-                                .label("Suspension Travel (mm)")
-                                .required()
-                                .validateOnBlur()
-                )
-                .field(Bike::getNotes)
-                    .multiline()
-                    .validateOnBlur()
-                .build();
+        var fb = Form.of(Bike.class, new Bike());
+        fb.field(Bike::getName).required();
+        fb.field(Bike::getBikeType).required();
+        fb.section(
+                q -> q.eq(Bike::getBikeType, BikeType.MOUNTAIN),
+                section -> section.field(Bike::getSuspensionTravel)
+                        .label("Suspension Travel (mm)").required().validateOnBlur()
+        );
+        fb.field(Bike::getNotes).multiline().validateOnBlur();
+        return fb.build();
     }
 
     // -------------------------------------------------------------------------
@@ -126,13 +119,12 @@ public class FormBuilderTest {
         existing.setBikeType(BikeType.MOUNTAIN);
         existing.setSuspensionTravel(120);
 
-        var json = Form.of(Bike.class, existing)
-                .field(Bike::getName)
-                .field(Bike::getBikeType)
-                .section(q -> q.eq(Bike::getBikeType, BikeType.MOUNTAIN), section -> section
-                        .field(Bike::getSuspensionTravel))
-                .build()
-                .toJson("frm-bike-edit", "");
+        var fb = Form.of(Bike.class, existing);
+        fb.field(Bike::getName);
+        fb.field(Bike::getBikeType);
+        fb.section(q -> q.eq(Bike::getBikeType, BikeType.MOUNTAIN),
+                section -> section.field(Bike::getSuspensionTravel));
+        var json = fb.build().toJson("frm-bike-edit", "");
 
         var jsonItems = items(json);
         assertEquals("Trek",     jsonItems.get(0).get("value"));
@@ -167,7 +159,6 @@ public class FormBuilderTest {
 
     @Test
     public void validate_skipsFieldInHiddenSection() {
-        // bikeType is RACER, so the suspension section is hidden
         var errors = bikeForm().handleValidate("suspensionTravel",
                 Map.of("name", "Trek", "bikeType", "RACER", "suspensionTravel", "", "notes", ""));
 
@@ -176,7 +167,6 @@ public class FormBuilderTest {
 
     @Test
     public void validate_fieldWithoutValidateOnReturnsEmpty() {
-        // 'name' has no validateOn, so triggering it returns nothing
         var errors = bikeForm().handleValidate("name",
                 Map.of("name", "", "bikeType", "", "suspensionTravel", "", "notes", ""));
 
@@ -189,21 +179,19 @@ public class FormBuilderTest {
 
     @Test
     public void toJson_submitUrlAppearsInDefinition() {
-        var json = Form.of(Bike.class, new Bike())
-                .field(Bike::getName)
-                .submitUrl("/bikes")
-                .build()
-                .toJson("frm-bike-new", "");
+        var fb = Form.of(Bike.class, new Bike());
+        fb.field(Bike::getName);
+        fb.submitUrl("/bikes");
+        var json = fb.build().toJson("frm-bike-new", "");
 
         assertEquals("/bikes", json.get("submitEndpoint"));
     }
 
     @Test
     public void toJson_submitUrlDefaultsToHeimdallConvention() {
-        var json = Form.of(Bike.class, new Bike())
-                .field(Bike::getName)
-                .build()
-                .toJson("frm-bike-new", "");
+        var fb = Form.of(Bike.class, new Bike());
+        fb.field(Bike::getName);
+        var json = fb.build().toJson("frm-bike-new", "");
 
         assertEquals("/heimdal/frm-bike-new/submit", json.get("submitEndpoint"));
     }
@@ -214,15 +202,14 @@ public class FormBuilderTest {
 
     @Test
     public void toJson_layoutComponentAppearsInItems() {
-        var json = Form.of(Bike.class, new Bike())
-                .field(Bike::getName).required()
-                .layout("hm-info-panel", props -> {
-                    props.put("title", "About bike types");
-                    props.put("content", "Mountain bikes have suspension.");
-                })
-                .field(Bike::getBikeType)
-                .build()
-                .toJson("frm-bike-new", "");
+        var fb = Form.of(Bike.class, new Bike());
+        fb.field(Bike::getName).required();
+        fb.layout("hm-info-panel", props -> {
+            props.put("title", "About bike types");
+            props.put("content", "Mountain bikes have suspension.");
+        });
+        fb.field(Bike::getBikeType);
+        var json = fb.build().toJson("frm-bike-new", "");
 
         var jsonItems = items(json);
         assertEquals(3, jsonItems.size());
@@ -237,11 +224,9 @@ public class FormBuilderTest {
 
     @Test
     public void toJson_layoutInsideSectionNotAllowed_layoutOnlyAtFormLevel() {
-        // Layout items sit at form level (not inside sections), so only fields appear in sections
-        var json = bikeForm().toJson("frm-bike-new", "");
-        var jsonItems = items(json);
+        var items = items(bikeForm().toJson("frm-bike-new", ""));
         @SuppressWarnings("unchecked")
-        var sectionItems = (List<Map<String, Object>>) jsonItems.get(2).get("items");
+        var sectionItems = (List<Map<String, Object>>) items.get(2).get("items");
         assertTrue("section items are all fields",
                 sectionItems.stream().allMatch(i -> i.containsKey("name")));
     }
@@ -252,31 +237,27 @@ public class FormBuilderTest {
 
     @Test
     public void registry_genericTypeResolvesToSpecificComponent() {
-        // Register hm-tag-list specifically for List<String>
         ComponentRegistry.register(
                 ComponentRegistration.forType(Clazz.ofClasses(List.class, String.class))
                         .component("hm-tag-list")
                         .build()
         );
 
-        var listOfString = Clazz.ofClasses(List.class, String.class);
+        var listOfString  = Clazz.ofClasses(List.class, String.class);
         var listOfInteger = Clazz.ofClasses(List.class, Integer.class);
 
         assertEquals("hm-tag-list",  ComponentRegistry.resolve(listOfString).componentName);
-        // List<Integer> has no registration → fallback
         assertEquals("hm-text-field", ComponentRegistry.resolve(listOfInteger).componentName);
     }
 
     @Test
     public void registry_genericTypeDistinctFromRawClass() {
-        // Registering List<String> does not affect resolution of bare List.class
         ComponentRegistry.register(
                 ComponentRegistration.forType(Clazz.ofClasses(List.class, String.class))
                         .component("hm-string-list")
                         .build()
         );
 
-        // bare List (no generics) still falls through to fallback
         var bareList = Clazz.of(List.class);
         assertEquals("hm-text-field", ComponentRegistry.resolve(bareList).componentName);
     }

@@ -25,14 +25,13 @@ public class FormBuilder<T> {
     final QueryWrapper queryWrapper;
     final TypeDescriber<T> typeDescriber;
     final List<ItemDefinition> items = new ArrayList<>();
-    private final AtomicInteger sectionCounter;
+    final AtomicInteger sectionCounter;
     String submitUrl;
 
     @SuppressWarnings("unchecked")
-    FormBuilder(Clazz<T> clazz, T initialValue) {
+    protected FormBuilder(Clazz<T> clazz, T initialValue) {
         this.clazz = clazz;
         this.initialValue = initialValue;
-        // getTypeDescriber triggers AutoMapper.map() for any plain POJO — no @Mapper needed
         this.typeDescriber = TypeDescriberImpl.getTypeDescriber(clazz.clazz);
         try {
             this.proxyInstance = (T) AutoMapper.getQueryMaps(clazz.clazz).getDeclaredConstructor().newInstance();
@@ -44,7 +43,7 @@ public class FormBuilder<T> {
     }
 
     // Shared-proxy constructor for section body builders
-    private FormBuilder(FormBuilder<T> parent) {
+    protected FormBuilder(FormBuilder<T> parent) {
         this.clazz = parent.clazz;
         this.initialValue = parent.initialValue;
         this.proxyInstance = parent.proxyInstance;
@@ -62,29 +61,18 @@ public class FormBuilder<T> {
         return new FieldBuilder<>(this, def);
     }
 
-    public FormBuilder<T> section(Consumer<FormPredicate<T>> predicateConsumer,
-                                   Consumer<FormBuilder<T>> bodyConsumer) {
-        var predicate = new FormPredicate<>(proxyInstance, queryWrapper);
+    @SuppressWarnings("unchecked")
+    public FormBuilder<T> section(Consumer<Q<T>> predicateConsumer,
+                                   Consumer<FormBuilder<T>>... bodyDefs) {
+        var predicate = new Q<>(proxyInstance, queryWrapper);
         predicateConsumer.accept(predicate);
-
         var bodyBuilder = new FormBuilder<>(this);
-        bodyConsumer.accept(bodyBuilder);
-
+        for (var def : bodyDefs) def.accept(bodyBuilder);
         String sectionId = "s" + sectionCounter.getAndIncrement();
         items.add(new SectionDefinition(sectionId, predicate.build(), bodyBuilder.fieldItems()));
         return this;
     }
 
-    /**
-     * Add a layout component — a non-field element with no backing Java value.
-     * Use for info panels, help popups, dividers, etc.
-     *
-     * <pre>
-     * .layout("hm-info-panel", props -> props
-     *     .put("title", "About suspension")
-     *     .put("content", "Mountain bikes use..."))
-     * </pre>
-     */
     public FormBuilder<T> layout(String componentName, Consumer<Map<String, Object>> config) {
         Map<String, Object> props = new LinkedHashMap<>();
         props.put("component", componentName);

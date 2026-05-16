@@ -136,13 +136,12 @@ class HmForm extends HTMLElement {
     }
 
     async #submit() {
-        const seq = ++this.#seq;
         let res;
         try {
             res = await fetch(this.#schema.submitEndpoint, {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify({ seq, values: this.#collectValues() })
+                body:    JSON.stringify(this.#collectValues())
             });
         } catch {
             return;

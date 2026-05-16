@@ -4,6 +4,24 @@ application {
     mainClass = 'io.norselibs.heimdal.integrationtest.HeimdallApp'
 }
 
+def generatedSourcesDir = layout.buildDirectory.dir('generated-sources/heimdal')
+
+// Scans fields.js from heimdal-core (and any other Heimdal module on the classpath)
+// via ClassLoader.getResources("static/heimdal/fields.js").
+// No source dirs needed — classpath scanning is automatic.
+def generateFormBuilder = tasks.register('generateFormBuilder', JavaExec) {
+    // runtimeClasspath covers heimdal-core's resources (fields.js via ClassLoader scan).
+    // Add the project's own resource source dirs so custom-fields.js etc. are found too.
+    classpath = configurations.runtimeClasspath + sourceSets.main.resources.sourceDirectories
+    mainClass = 'io.norselibs.heimdal.FormBuilderSourceGenerator'
+    args = [generatedSourcesDir.get().asFile.absolutePath]
+    inputs.files(configurations.runtimeClasspath, sourceSets.main.resources.srcDirs)
+    outputs.dir(generatedSourcesDir)
+}
+
+sourceSets.main.java.srcDir generatedSourcesDir
+tasks.named('compileJava') { dependsOn generateFormBuilder }
+
 dependencies {
     implementation project(':heimdal-core')
 

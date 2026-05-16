@@ -1,7 +1,7 @@
 package io.norselibs.heimdal.integrationtest;
 
 import io.norselibs.heimdal.Form;
-import io.norselibs.heimdal.FormBuilder;
+import io.norselibs.heimdal.Hm;
 import io.norselibs.heimdal.FormDefinition;
 import io.varhttp.ControllerContext;
 import io.varhttp.Serializer;
@@ -14,12 +14,18 @@ import java.util.stream.Collectors;
 /**
  * Per-request Heimdal context injected as a controller parameter by var-http.
  *
- * Wraps the ControllerContext and Serializer so controllers need no other
- * framework imports for the Heimdal form handling. Register the matcher in
- * HeimdallApp so var-http knows how to create instances:
+ * Each field is defined by its own lambda — the lambda receives Hm&lt;T&gt;
+ * so typed component methods are available throughout.
  *
  * <pre>
- *   config.addParameterHandler(VarHeimdalParameterHandler.class);
+ * vh.form(Bike.class, "/bikes",
+ *     f -> f.field(Bike::getName).required(),
+ *     f -> f.field(Bike::getBikeType).required(),
+ *     f -> f.section(
+ *         q -> q.eq(Bike::getBikeType, BikeType.MOUNTAIN),
+ *         s -> s.integerField(Bike::getSuspensionTravel).required()
+ *     )
+ * )
  * </pre>
  */
 public class VarHeimdal {
@@ -31,24 +37,32 @@ public class VarHeimdal {
         this.serializer = serializer;
     }
 
-    /**
-     * Builds and dispatches the form.
-     * GET  → renders the page with embedded form definition JSON.
-     * POST → handles a validate event, returns {seq, errors}.
-     *
-     * An instance of T is created via its no-arg constructor for initial field values.
-     */
-    public <T> Object form(Class<T> clazz, Consumer<FormBuilder<T>> definition) throws Exception {
+    /** Form with an explicit submit URL string. */
+    @SuppressWarnings("unchecked")
+    public <T> Object form(Class<T> clazz, String submitUrl,
+                           Consumer<Hm<T>>... definitions) throws Exception {
         T initialValue = clazz.getDeclaredConstructor().newInstance();
-        FormBuilder<T> builder = Form.of(clazz, initialValue);
-        definition.accept(builder);
+        Hm<T> builder = Form.of(clazz, initialValue);
+        for (Consumer<Hm<T>> def : definitions) def.accept(builder);
+        builder.submitUrl(submitUrl);
         return dispatch(builder.build());
     }
 
-    /** Overload for edit forms where an existing entity provides the initial field values. */
-    public <T> Object form(Class<T> clazz, T initialValue, Consumer<FormBuilder<T>> definition) throws Exception {
-        FormBuilder<T> builder = Form.of(clazz, initialValue);
-        definition.accept(builder);
+    /** Form without a submit URL — useful when submit is handled by a separate endpoint
+     *  and the URL is set via one of the lambdas, or not needed. */
+    @SuppressWarnings("unchecked")
+    public <T> Object form(Class<T> clazz,
+                           Consumer<Hm<T>>... definitions) throws Exception {
+        return form(clazz, "", definitions);
+    }
+
+    /** Edit-form overload: uses an existing entity for initial field values. */
+    @SuppressWarnings("unchecked")
+    public <T> Object form(Class<T> clazz, T initialValue, String submitUrl,
+                           Consumer<Hm<T>>... definitions) throws Exception {
+        Hm<T> builder = Form.of(clazz, initialValue);
+        for (Consumer<Hm<T>> def : definitions) def.accept(builder);
+        builder.submitUrl(submitUrl);
         return dispatch(builder.build());
     }
 

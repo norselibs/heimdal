@@ -2,8 +2,6 @@ package io.norselibs.heimdal;
 
 import io.ran.Clazz;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -45,38 +43,16 @@ public class ComponentRegistry {
     // Keyed by raw boxed Class — checked second
     private static final Map<Class<?>, ComponentRegistration<?>> byType  = new ConcurrentHashMap<>();
 
-    private static final ComponentRegistration<?> FALLBACK;
-
-    static {
-        FALLBACK = ComponentRegistration.forType(String.class)
-                .component("hm-text-field")
-                .build();
-
-        register(ComponentRegistration.forType(String.class)
-                .component("hm-text-field").build());
-
-        register(ComponentRegistration.forType(Integer.class)
-                .component("hm-number-field")
-                .deserialize(Integer::parseInt).build());
-
-        register(ComponentRegistration.forType(Long.class)
-                .component("hm-number-field")
-                .deserialize(Long::parseLong).build());
-
-        register(ComponentRegistration.forType(BigDecimal.class)
-                .component("hm-number-field")
-                .deserialize(BigDecimal::new).build());
-
-        register(ComponentRegistration.forType(Boolean.class)
-                .component("hm-checkbox-field")
-                .deserialize(Boolean::parseBoolean).build());
-
-        register(ComponentRegistration.forType(LocalDate.class)
-                .component("hm-date-field")
-                .deserialize(LocalDate::parse).build());
-    }
+    // Standard component registrations come from GeneratedFormBuilder's static block,
+    // which is populated by the generateFormBuilder task scanning fields.js.
+    private static final ComponentRegistration<?> FALLBACK =
+            ComponentRegistration.forType(String.class).component("hm-text-field").build();
 
     public static <T> void register(ComponentRegistration<T> registration) {
+        store(registration);
+    }
+
+    private static <T> void store(ComponentRegistration<T> registration) {
         if (!registration.type.generics.isEmpty()) {
             // Generic type: store with full Clazz so List<Photo> ≠ List<String>
             byClazz.put(registration.type, registration);

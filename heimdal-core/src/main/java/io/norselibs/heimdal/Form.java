@@ -5,7 +5,7 @@ import io.ran.Clazz;
 public class Form {
     private Form() {}
 
-    public static <T> FormBuilder<T> of(Class<T> clazz, T initialValue) {
-        return new FormBuilder<>(Clazz.of(clazz), initialValue);
+    public static <T> Hm<T> of(Class<T> clazz, T initialValue) {
+        return new Hm<>(Clazz.of(clazz), initialValue);
     }
 }

@@ -44,6 +44,7 @@ class HmBaseField extends HTMLElement {
 // ---------------------------------------------------------------------------
 
 class HmTextField extends HmBaseField {
+    static heimdal = { type: 'string', default: true };
     get value() { return this.querySelector('input')?.value ?? this._attr('value'); }
 
     _render() {
@@ -66,6 +67,7 @@ customElements.define('hm-text-field', HmTextField);
 // ---------------------------------------------------------------------------
 
 class HmTextareaField extends HmBaseField {
+    static heimdal = { type: 'string', multiline: true, default: true };
     get value() { return this.querySelector('textarea')?.value ?? this._attr('value'); }
 
     _render() {
@@ -88,6 +90,7 @@ customElements.define('hm-textarea-field', HmTextareaField);
 // ---------------------------------------------------------------------------
 
 class HmNumberField extends HmBaseField {
+    static heimdal = { types: ['integer', 'long', 'decimal'], default: true };
     get value() { return this.querySelector('input')?.value ?? this._attr('value'); }
 
     _render() {
@@ -110,6 +113,7 @@ customElements.define('hm-number-field', HmNumberField);
 // ---------------------------------------------------------------------------
 
 class HmCheckboxField extends HmBaseField {
+    static heimdal = { type: 'boolean', default: true };
     get value() {
         return String(this.querySelector('input')?.checked ?? this._attr('value') === 'true');
     }
@@ -133,6 +137,7 @@ customElements.define('hm-checkbox-field', HmCheckboxField);
 // ---------------------------------------------------------------------------
 
 class HmDateField extends HmBaseField {
+    static heimdal = { type: 'date', default: true };
     get value() { return this.querySelector('input')?.value ?? this._attr('value'); }
 
     _render() {

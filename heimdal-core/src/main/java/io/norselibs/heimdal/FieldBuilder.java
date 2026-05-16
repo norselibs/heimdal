@@ -2,14 +2,6 @@ package io.norselibs.heimdal;
 
 import io.norselibs.heimdal.definition.FieldDefinition;
 
-import java.util.Map;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-/**
- * Returned by FormBuilder.field(). Exposes field-specific configuration methods,
- * then delegates back to FormBuilder for the next field or section.
- */
 public class FieldBuilder<T> {
     private final FormBuilder<T> form;
     private final FieldDefinition def;
@@ -39,26 +31,8 @@ public class FieldBuilder<T> {
         return this;
     }
 
-    // --- delegate to parent FormBuilder so chains continue naturally ---
-
-    public FieldBuilder<T> field(Function<T, ?> getter) {
-        return form.field(getter);
-    }
-
-    public FormBuilder<T> layout(String componentName, Consumer<Map<String, Object>> config) {
-        return form.layout(componentName, config);
-    }
-
-    public FormBuilder<T> section(Consumer<FormPredicate<T>> predicateConsumer,
-                                   Consumer<FormBuilder<T>> bodyConsumer) {
-        return form.section(predicateConsumer, bodyConsumer);
-    }
-
-    public FormBuilder<T> submitUrl(String url) {
-        return form.submitUrl(url);
-    }
-
-    public FormDefinition<T> build() {
-        return form.build();
+    public FieldBuilder<T> component(String componentName) {
+        def.setComponent(componentName);
+        return this;
     }
 }

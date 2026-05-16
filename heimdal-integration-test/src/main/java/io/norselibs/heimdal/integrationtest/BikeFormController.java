@@ -12,23 +12,15 @@ public class BikeFormController {
 
     @Controller(path = "/bikes/new")
     public Object page(VarHeimdal vh) throws Exception {
-        return vh.form(Bike.class, form -> form
-                .field(Bike::getName)
-                    .required()
-                .field(Bike::getBikeType)
-                    .required()
-                .section(
+        return vh.form(Bike.class, "/bikes",
+                f -> f.textField(Bike::getName).required(),
+                f -> f.field(Bike::getBikeType).required(),
+                f -> f.section(
                         q -> q.eq(Bike::getBikeType, BikeType.MOUNTAIN),
-                        section -> section
-                            .field(Bike::getSuspensionTravel)
-                                .label("Suspension Travel (mm)")
-                                .required()
-                                .validateOnBlur()
-                )
-                .field(Bike::getNotes)
-                    .multiline()
-                    .validateOnBlur()
-                .submitUrl("/bikes")
+                        s -> s.integerField(Bike::getSuspensionTravel)
+                              .label("Suspension Travel (mm)").required().validateOnBlur()
+                ),
+                f -> f.textareaField(Bike::getNotes).validateOnBlur()
         );
     }
 
