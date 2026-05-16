@@ -28,21 +28,29 @@ Submit goes to a separate URL using whatever the framework provides for JSON des
 ## Modules
 
 ```
-heimdal-core              Framework-agnostic. Form builder, list builder, annotation
+heimdal-core              Framework-agnostic. Form/list/detail builders, annotation
                           registry, component registry, code generation, validators,
-                          wire protocol types. No dependency on any web framework.
+                          wire protocol, AbstractHeimdal<RESPONSE> base class.
+                          No dependency on any web framework.
 
-heimdal-var               var-http adapter. VarHeimdal (per-request context) and
-                          VarHeimdalParameterHandler (DI integration).
-                          Depends on heimdal-core via api.
+heimdal-var               var-http adapter. VarHeimdal extends AbstractHeimdal<Object>
+                          (return value serialized by var-http). Includes
+                          VarHeimdalParameterHandler for DI injection.
+
+heimdal-spring            Spring Boot adapter. SpringHeimdal extends
+                          AbstractHeimdal<ResponseEntity<?>> (returned from controller
+                          methods). Auto-configured via spring-boot-autoconfigure.
 
 heimdal-material          Material Design styling via MUI CSS. Overrides the page
                           shells to load MUI CSS + a CSS-only reskin (forms.css).
                           No new web components — the default fields.js is unchanged.
 
-heimdal-integration-test  Runnable demo. Full bike CRUD with both explicit and
-                          auto forms/lists. Uses heimdal-material for styling.
+heimdal-integration-test  Runnable demo. Full bike/claim CRUD with explicit forms,
+                          auto-forms, lists, detail pages, file upload, and collection
+                          fields. Uses heimdal-material for styling.
 ```
+
+Heimdal is the wire protocol. The adapter modules are thin implementations of eight abstract methods (`htmlResponse`, `jsonResponse`, `errorJsonResponse`, `requestMethod`, `requestPath`, `requestParam`, `readJsonBody`, `serializeToJson`) — all business logic lives in `AbstractHeimdal`.
 
 ## A component, end to end
 
@@ -369,7 +377,7 @@ vh.autoForm(BikeFormDto.class, "/save", o ->
 Third-party annotations (Bean Validation, Spring, etc.) can be mapped to the same actions via `AnnotationRegistry`. Heimdal's own annotations are pre-registered; adapters add theirs at startup:
 
 ```java
-// In a hypothetical heimdal-spring adapter:
+// In HeimdalAutoConfiguration or app startup:
 AnnotationRegistry.register(NotNull.class,  (a, f) -> f.required());
 AnnotationRegistry.register(NotBlank.class, (a, f) -> f.required());
 ```
@@ -647,19 +655,19 @@ The default adapter renders a dark `#333` nav bar. `MaterialVarHeimdal` override
 
 ## var-http integration
 
-`heimdal-var` provides `VarHeimdal` (per-request context) and `VarHeimdalParameterHandler` (DI wiring). Add to your project:
+`heimdal-var` provides `VarHeimdal` and `VarHeimdalParameterHandler`:
 
 ```groovy
 implementation 'io.norselibs:heimdal-var:0.1-SNAPSHOT'
 ```
 
-**One-time setup** in app startup:
+**One-time setup:**
 
 ```java
 config.addParameterHandler(VarHeimdalParameterHandler.class);
 ```
 
-**Controller**:
+**Controller** — methods return `Object` (var-http serializes it):
 
 ```java
 @ControllerClass
@@ -667,23 +675,74 @@ public class BikeFormController {
 
     @Controller(path = "/bikes/new")
     public Object page(VarHeimdal vh) throws Exception {
-        return vh.form(Bike.class, "/bikes",
+        return vh.form(Bike.class, "/bikes/save",
             f -> f.textField(Bike::getName).required(),
-            f -> f.field(Bike::getBikeType).required(),
-            f -> f.section(
-                q -> q.eq(Bike::getBikeType, BikeType.MOUNTAIN),
-                s -> s.integerField(Bike::getSuspensionTravel)
-                      .label("Suspension Travel (mm)").required().validateOnBlur()
-            ),
-            f -> f.textareaField(Bike::getNotes).validateOnBlur()
+            f -> f.field(Bike::getBikeType).required()
         );
     }
 
-    @Controller(path = "/bikes", httpMethods = HttpMethod.POST)
-    public Map<String, Object> createBike(@RequestBody Bike bike) {
+    @Controller(path = "/bikes/save", httpMethods = HttpMethod.POST)
+    public Map<String, Object> saveBike(@RequestBody Bike bike) {
         bikeService.save(bike);
-        return Map.of("redirect", "/bikes/new");
+        return Map.of("redirect", "/bikes");
     }
+}
+```
+
+## Spring Boot integration
+
+`heimdal-spring` auto-configures via Spring Boot's autoconfiguration mechanism:
+
+```groovy
+implementation 'io.norselibs:heimdal-spring:0.1-SNAPSHOT'
+```
+
+No manual setup needed — `SpringHeimdal` is injected automatically. Controller methods return `ResponseEntity<?>`:
+
+```java
+@RestController
+@RequestMapping("/bikes")
+public class BikeController {
+
+    // Handles both GET (form page) and POST (validate events)
+    @RequestMapping("/new")
+    public ResponseEntity<?> newBike(SpringHeimdal vh) throws Exception {
+        return vh.form(Bike.class, "/bikes/save",
+            f -> f.textField(Bike::getName).required(),
+            f -> f.field(Bike::getBikeType).required()
+        );
+    }
+
+    // Save handler — @RequestBody deserialized by Spring, vh.save() handles onError
+    @PostMapping("/save")
+    public ResponseEntity<?> saveBike(@RequestBody Bike bike, SpringHeimdal vh) throws Exception {
+        return vh.save(bike, actionDef, bikeService::save, "/bikes");
+    }
+}
+```
+
+Static startup configuration uses the same `AbstractHeimdal` methods regardless of adapter:
+
+```java
+AbstractHeimdal.setAppName("<strong>MyApp</strong>");
+AbstractHeimdal.addMenuItem("Bikes", "/bikes");
+AbstractHeimdal.registerComponentScript("/static/custom-fields.js");
+```
+
+### Writing a new adapter
+
+Implement the eight abstract methods in `AbstractHeimdal<RESPONSE>` — that's it:
+
+```java
+public class MyFrameworkHeimdal extends AbstractHeimdal<MyResponse> {
+    @Override protected MyResponse htmlResponse(String ct, String html) { ... }
+    @Override protected MyResponse jsonResponse(Object data) { ... }
+    @Override protected MyResponse errorJsonResponse(int status, Object data) { ... }
+    @Override protected String requestMethod() { ... }
+    @Override protected String requestPath() { ... }
+    @Override protected String requestParam(String name) { ... }
+    @Override protected Map<String, Object> readJsonBody() { ... }
+    @Override protected String serializeToJson(Object obj) { ... }
 }
 ```
 
