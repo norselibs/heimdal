@@ -97,7 +97,18 @@ customElements.define('hm-rating-field', HmRatingField);
 
 **Contract with `hm-form`:** `get value()` returns the current value as a string; `setErrors(messages)` displays or clears inline validation errors.
 
-### 2 — Generator: produce the typed method
+### 2 — App startup: register the script
+
+Tell the page shell to load your component file alongside the standard `fields.js`:
+
+```java
+// In app startup, before the HTTP server starts:
+VarHeimdal.registerComponentScript("/heimdal/custom-fields.js");
+```
+
+Without this, `hm-form.js` calls `document.createElement("hm-rating-field")` and gets a silent generic element — the custom element is never registered so nothing renders.
+
+### 3 — Generator: produce the typed method
 
 `./gradlew generateFormBuilder` scans all `*.js` files under `static/heimdal/` from every JAR and resource directory on the classpath. It reads `static heimdal = { type: 'integer', default: false }` and adds to `Hm.java`:
 
@@ -110,7 +121,7 @@ public FieldBuilder<T> ratingField(Function<T, java.lang.Integer> getter) {
 
 `default: false` means integer fields still default to `hm-number-field`; `ratingField()` is an opt-in alternative that explicitly sets the component override.
 
-### 3 — Backend: use it in a form
+### 4 — Backend: use it in a form
 
 ```java
 vh.form(Bike.class, "/bikes/save",
@@ -124,9 +135,9 @@ vh.form(Bike.class, "/bikes/save",
 
 IDE completion shows `ratingField` alongside `textField`, `dateField`, `integerField` etc. Passing a getter that returns the wrong type is a compile error.
 
-### 4 — In the browser
+### 5 — In the browser
 
-![Rating field rendered in the form](docs/screenshots/rating-field.png)
+![Rating field rendered in the form](docs/screenshots/ratings-field.png)
 
 ---
 

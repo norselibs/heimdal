@@ -34,6 +34,7 @@ public class MaterialVarHeimdal extends VarHeimdal {
                     <link rel="stylesheet" href="//cdn.muicss.com/mui-0.10.3/css/mui.min.css">
                     <link rel="stylesheet" href="/heimdal-material/forms.css">
                     <script type="module" src="/heimdal/fields.js"></script>
+                    """ + extraScriptTags() + """
                     <script type="module" src="/heimdal/hm-form.js"></script>
                 </head>
                 <body>

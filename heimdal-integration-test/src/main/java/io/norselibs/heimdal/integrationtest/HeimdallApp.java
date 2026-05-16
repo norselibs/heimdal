@@ -1,6 +1,7 @@
 package io.norselibs.heimdal.integrationtest;
 
 import io.norselibs.heimdal.MaterialVarHeimdalParameterHandler;
+import io.norselibs.heimdal.VarHeimdal;
 import io.odinjector.OdinJector;
 import io.varhttp.Standalone;
 import io.varhttp.VarConfig;
@@ -9,6 +10,9 @@ public class HeimdallApp {
 
     public static void main(String[] args) {
         int port = args.length > 0 ? Integer.parseInt(args[0]) : 8080;
+
+        // Register project-specific component JS files to be included in every page shell
+        VarHeimdal.registerComponentScript("/heimdal/custom-fields.js");
 
         OdinJector odinJector = OdinJector.create()
                 .addContext(new HeimdallContext(new VarConfig().setPort(port)));

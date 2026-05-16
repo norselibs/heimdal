@@ -25,6 +25,8 @@ public class Bike {
     @HmValidateOnBlur
     private String notes;
 
+    private int rating;
+
     public int getId()                         { return id; }
     public void setId(int id)                  { this.id = id; }
 
@@ -39,4 +41,12 @@ public class Bike {
 
     public String getNotes()                   { return notes; }
     public void setNotes(String notes)         { this.notes = notes; }
+
+    public int getRating() {
+        return rating;
+    }
+
+    public void setRating(int rating) {
+        this.rating = rating;
+    }
 }

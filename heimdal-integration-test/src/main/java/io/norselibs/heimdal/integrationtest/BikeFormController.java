@@ -53,6 +53,8 @@ public class BikeFormController {
                 f -> f.textField(Bike::getName).required()
                        .validate(Validators.minLength(3))
                        .validate(Validators.maxLength(50)),
+                f -> f.ratingField(Bike::getRating),
+
                 f -> f.field(Bike::getBikeType).required(),
                 f -> f.section("Suspension",
                         q -> q.eq(Bike::getBikeType, BikeType.MOUNTAIN),

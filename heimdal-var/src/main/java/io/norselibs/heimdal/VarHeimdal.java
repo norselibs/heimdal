@@ -31,6 +31,28 @@ import java.util.stream.Collectors;
  * </pre>
  */
 public class VarHeimdal {
+
+    /** Extra component script URLs included in every page shell, in registration order. */
+    private static final java.util.List<String> componentScripts = new java.util.ArrayList<>();
+
+    /**
+     * Registers a component JS file to be loaded in every page shell.
+     * Call once at app startup for each custom component file.
+     *
+     * <pre>
+     * VarHeimdal.registerComponentScript("/heimdal/custom-fields.js");
+     * </pre>
+     */
+    public static void registerComponentScript(String url) {
+        componentScripts.add(url);
+    }
+
+    protected String extraScriptTags() {
+        return componentScripts.stream()
+                .map(s -> "<script type=\"module\" src=\"" + s + "\"></script>")
+                .collect(java.util.stream.Collectors.joining("\n                    "));
+    }
+
     private final ControllerContext ctx;
     private final Serializer serializer;
 
@@ -262,6 +284,7 @@ public class VarHeimdal {
                     <meta charset="UTF-8">
                     <title>Heimdal</title>
                     <script type="module" src="/heimdal/fields.js"></script>
+                    """ + extraScriptTags() + """
                     <script type="module" src="/heimdal/hm-form.js"></script>
                     <style>
                         body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; }
