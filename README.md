@@ -28,17 +28,20 @@ Submit goes to a separate URL using whatever the framework provides for JSON des
 ## Modules
 
 ```
-heimdal-core              Framework-agnostic. Form builder, annotation registry,
-                          component registry, code generation, wire protocol types.
-                          No dependency on any web framework or JSON library.
+heimdal-core              Framework-agnostic. Form builder, list builder, annotation
+                          registry, component registry, code generation, validators,
+                          wire protocol types. No dependency on any web framework.
 
 heimdal-var               var-http adapter. VarHeimdal (per-request context) and
                           VarHeimdalParameterHandler (DI integration).
                           Depends on heimdal-core via api.
 
-heimdal-integration-test  Runnable demo. Wires heimdal-var into a var-http app.
-                          Shows what an adapter module for any other framework
-                          (Spring, Quarkus) would look like.
+heimdal-material          Material Design styling via MUI CSS. Overrides the page
+                          shells to load MUI CSS + a CSS-only reskin (forms.css).
+                          No new web components — the default fields.js is unchanged.
+
+heimdal-integration-test  Runnable demo. Full bike CRUD with both explicit and
+                          auto forms/lists. Uses heimdal-material for styling.
 ```
 
 ## Form builder
@@ -47,14 +50,17 @@ Each field is declared in its own lambda. The lambda parameter `f` is `Hm<T>` �
 
 ```java
 vh.form(Bike.class, "/bikes",
-    f -> f.textField(Bike::getName).required(),
-    f -> f.field(Bike::getBikeType).required(),       // enum → hm-select-field automatically
-    f -> f.section("Suspension",                      // labelled section → <fieldset><legend>
+    f -> f.textField(Bike::getName).required()
+           .validate(Validators.minLength(3))
+           .validate(Validators.maxLength(50)),
+    f -> f.field(Bike::getBikeType).required(),        // enum → hm-select-field automatically
+    f -> f.section("Suspension",                       // labelled section → <fieldset><legend>
         q -> q.eq(Bike::getBikeType, BikeType.MOUNTAIN),
         s -> s.integerField(Bike::getSuspensionTravel)
               .label("Suspension Travel (mm)").required().validateOnBlur()
     ),
-    f -> f.textareaField(Bike::getNotes).validateOnBlur()
+    f -> f.textareaField(Bike::getNotes)
+           .validate(Validators.maxLength(200))
 )
 ```
 
@@ -64,8 +70,40 @@ Ran intercepts the getter calls to derive property names, types, and labels. The
 |---|---|
 | `.required()` | UI concern, not a domain annotation |
 | `.label("...")` | Only when the token-derived label is wrong or needs a unit |
-| `.validateOnBlur()` | Developer decides which fields justify a server round-trip |
+| `.validateOnBlur()` | Fields that need a server round-trip but have no custom validators |
+| `.validate(rule)` | Attaches a validation rule; automatically enables blur-time validation |
 | `.readonly()` | Field is displayed but not editable |
+
+## Validators
+
+`Validators` provides named rules with sensible default messages:
+
+```java
+f -> f.textField(Claim::getEmail)
+       .validate(Validators.email())
+
+f -> f.textField(Bike::getName)
+       .validate(Validators.minLength(3))
+       .validate(Validators.maxLength(50), "Name must be 50 characters or fewer")
+
+f -> f.textField(Claim::getPostalCode)
+       .validate(Validators.pattern("\\d{4,6}", "Must be a 4–6 digit postal code"))
+```
+
+Available: `minLength(n)`, `maxLength(n)`, `email()`, `pattern(regex, message)`, `numeric()`.
+
+Attaching any validator automatically enables blur-time validation — no need to also call `.validateOnBlur()`. Custom validators are plain lambdas:
+
+```java
+f -> f.textField(Bike::getName)
+       .validate(v -> v.contains(" ") ? Optional.empty() : Optional.of("Must include a space"))
+```
+
+The second `.validate(rule, message)` overload replaces the rule's default message:
+
+```java
+.validate(Validators.minLength(3), "Name too short")
+```
 
 Sections render as `<fieldset>/<legend>` pairs. A section without a label is an anonymous group.
 

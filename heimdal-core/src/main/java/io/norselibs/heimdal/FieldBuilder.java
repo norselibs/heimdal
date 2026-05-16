@@ -31,6 +31,17 @@ public class FieldBuilder<T> {
         return this;
     }
 
+    public FieldBuilder<T> validate(Validator validator) {
+        def.addValidator(validator);
+        def.setValidateOn("blur"); // attaching a rule implies blur-time validation
+        return this;
+    }
+
+    /** Validates with the given rule but replaces its default message. */
+    public FieldBuilder<T> validate(Validator validator, String messageOverride) {
+        return validate(v -> validator.validate(v).map(ignored -> messageOverride));
+    }
+
     public FieldBuilder<T> readonly() {
         def.setReadonly(true);
         return this;

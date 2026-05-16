@@ -1,6 +1,7 @@
 package io.norselibs.heimdal.integrationtest;
 
 import io.norselibs.heimdal.VarHeimdal;
+import io.norselibs.heimdal.Validators;
 import io.varhttp.Controller;
 import io.varhttp.ControllerClass;
 import io.varhttp.HttpMethod;
@@ -49,14 +50,17 @@ public class BikeFormController {
     @Controller(path = "/bikes/new")
     public Object newBike(VarHeimdal vh) throws Exception {
         return vh.form(Bike.class, "/bikes/save",
-                f -> f.textField(Bike::getName).required(),
+                f -> f.textField(Bike::getName).required()
+                       .validate(Validators.minLength(3))
+                       .validate(Validators.maxLength(50)),
                 f -> f.field(Bike::getBikeType).required(),
-                f -> f.section(
+                f -> f.section("Suspension",
                         q -> q.eq(Bike::getBikeType, BikeType.MOUNTAIN),
                         s -> s.integerField(Bike::getSuspensionTravel)
                               .label("Suspension Travel (mm)").required().validateOnBlur()
                 ),
                 f -> f.textareaField(Bike::getNotes).validateOnBlur()
+                       .validate(Validators.maxLength(200))
         );
     }
 
@@ -81,14 +85,17 @@ public class BikeFormController {
     public Object editBike(@PathVariable(name = "id") int id, VarHeimdal vh) throws Exception {
         Bike bike = findById(id);
         return vh.form(Bike.class, bike, "/bikes/" + id + "/save",
-                f -> f.textField(Bike::getName).required(),
+                f -> f.textField(Bike::getName).required()
+                       .validate(Validators.minLength(3))
+                       .validate(Validators.maxLength(50)),
                 f -> f.field(Bike::getBikeType).required(),
-                f -> f.section(
+                f -> f.section("Suspension",
                         q -> q.eq(Bike::getBikeType, BikeType.MOUNTAIN),
                         s -> s.integerField(Bike::getSuspensionTravel)
                               .label("Suspension Travel (mm)").required().validateOnBlur()
                 ),
                 f -> f.textareaField(Bike::getNotes).validateOnBlur()
+                       .validate(Validators.maxLength(200))
         );
     }
 

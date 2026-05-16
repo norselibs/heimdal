@@ -65,6 +65,12 @@ public class FormDefinition<T> {
         if (field.isRequired() && value.isEmpty()) {
             errors.add(field.getLabel() + " is required");
         }
+        // Run additional validators — skip on empty values so optional fields aren't validated
+        if (!value.isEmpty()) {
+            for (var validator : field.getValidators()) {
+                validator.validate(value).ifPresent(errors::add);
+            }
+        }
         return errors;
     }
 
