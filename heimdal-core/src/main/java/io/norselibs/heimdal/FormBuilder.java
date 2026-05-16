@@ -169,6 +169,70 @@ public class FormBuilder<T> {
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Inline collection field
+    // -------------------------------------------------------------------------
+
+    /**
+     * Declares a field backed by a {@code List<I>} and rendered as an editable table.
+     * Columns are declared using method references on the item type:
+     *
+     * <pre>
+     * f -> f.collectionField(Claim::getWitnesses, Witness.class, c -> {
+     *     c.column(Witness::getName).label("Full Name");
+     *     c.column(Witness::getPhone);
+     * })
+     * </pre>
+     */
+    public <I> FieldBuilder<T> collectionField(Function<T, ?> getter, Class<I> itemClass,
+                                                Consumer<CollectionColumnBuilder<I>> schema) {
+        getter.apply(proxyInstance);
+        var property = queryWrapper.getCurrentProperty().copy();
+        Object rawValue = getter.apply(initialValue);
+
+        var colBuilder = new CollectionColumnBuilder<>(itemClass);
+        schema.accept(colBuilder);
+
+        // Serialize initial items to JSON string using column names + reflection
+        String initialJson = serializeItems(rawValue, colBuilder.columnNames());
+
+        var def = new FieldDefinition(property, initialJson);
+        def.setComponent("hm-collection-field");
+        def.putJson("columns", colBuilder.build());
+        items.add(def);
+        return new FieldBuilder<>(this, def);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static String serializeItems(Object rawValue, List<String> colNames) {
+        if (!(rawValue instanceof List<?> list) || list.isEmpty()) return "[]";
+        var sb = new StringBuilder("[");
+        for (int i = 0; i < list.size(); i++) {
+            if (i > 0) sb.append(",");
+            Object item = list.get(i);
+            sb.append("{");
+            for (int j = 0; j < colNames.size(); j++) {
+                if (j > 0) sb.append(",");
+                String name = colNames.get(j);
+                Object val = fieldValue(item, name);
+                String str = val != null ? val.toString() : "";
+                sb.append("\"").append(name).append("\":\"")
+                  .append(str.replace("\\", "\\\\").replace("\"", "\\\""))
+                  .append("\"");
+            }
+            sb.append("}");
+        }
+        return sb.append("]").toString();
+    }
+
+    private static Object fieldValue(Object item, String camelHumpName) {
+        Field f = findField(item.getClass(), camelHumpName);
+        if (f == null) return null;
+        try { f.setAccessible(true); return f.get(item); } catch (Exception e) { return null; }
+    }
+
+    // -------------------------------------------------------------------------
+
     static Object safeGet(Property<?> property, Object owner) {
         if (owner == null) return null;
         try {
@@ -192,7 +256,7 @@ public class FormBuilder<T> {
         return f != null ? f.getAnnotations() : new Annotation[0];
     }
 
-    private static Field findField(Class<?> cls, String name) {
+    static Field findField(Class<?> cls, String name) {
         for (Class<?> c = cls; c != null; c = c.getSuperclass()) {
             try { return c.getDeclaredField(name); }
             catch (NoSuchFieldException ignored) {}

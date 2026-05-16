@@ -30,6 +30,7 @@ public class FieldDefinition implements ItemDefinition {
     List<String> validates;
     private final List<Validator> validators = new ArrayList<>();
     private final List<ContextValidator> contextValidators = new ArrayList<>();
+    private final Map<String, Object> additionalJson = new LinkedHashMap<>();
 
     public FieldDefinition(Property<?> property, Object initialValue) {
         this.property = property;
@@ -57,6 +58,7 @@ public class FieldDefinition implements ItemDefinition {
     public List<Validator> getValidators()                 { return validators; }
     public void addContextValidator(ContextValidator cv)   { this.contextValidators.add(cv); }
     public List<ContextValidator> getContextValidators()   { return contextValidators; }
+    public void putJson(String key, Object value)          { additionalJson.put(key, value); }
     public void setValidateOn(String event)  { this.validateOn = event; }
     public void setValidates(List<String> v) { this.validates = v; }
 
@@ -85,6 +87,8 @@ public class FieldDefinition implements ItemDefinition {
         }
         // Delegate component-specific extras (options, currency, etc.) to the registration
         registration.addExtraJson(m, this);
+        // Per-field extras (e.g. collection column schema)
+        m.putAll(additionalJson);
         return m;
     }
 }

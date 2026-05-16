@@ -181,6 +181,12 @@ public class ClaimFormController {
 
             // GAP 5: file upload — spec shows Claim::getPhotos with .maxFiles(10). Omitted.
 
+            // Inline editable list — witnesses
+            f -> f.collectionField(Claim::getWitnesses, Witness.class, c -> {
+                c.column(Witness::getName).label("Full Name");
+                c.column(Witness::getPhone).label("Phone");
+            }),
+
             // Context predicate: only shown for standard users (evaluated server-side at build time)
             f -> f.when(IS_STANDARD_USER, s -> s.decimalField(Claim::getEstimatedAmount)),
 

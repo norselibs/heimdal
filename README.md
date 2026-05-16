@@ -456,6 +456,27 @@ public void heimdal(@PathVariable(name = "file") String file,
 }
 ```
 
+## Inline editable collections
+
+A field backed by a `List<DTO>` renders as an editable table — add rows, remove rows, edit cells. No server round-trips for add/remove; the whole collection submits as part of the form.
+
+```java
+f -> f.collectionField(Claim::getWitnesses, Witness.class, c -> {
+    c.column(Witness::getName).label("Full Name");
+    c.column(Witness::getPhone).label("Phone");
+})
+```
+
+Column names, labels, and input types are derived from the item class via Ran method references. Override the label with `.label("...")` and mark a column required with `.required()`.
+
+**Column type mapping:** `String` → text input, `Integer`/`Long` → number, `BigDecimal` → decimal number, `Boolean` → text (future: checkbox), `LocalDate` → date picker.
+
+**Wire protocol:** the component's `value` is a JavaScript array, so `JSON.stringify` in `hm-form` nests it correctly. Jackson on the server sees `{"witnesses": [{"name":"...", "phone":"..."}]}` and deserializes directly to `List<Witness>` — no custom deserializer needed.
+
+**Validation:** the whole collection is validated server-side on submit. Per-row blur validation is not currently supported.
+
+The `hm-collection-field` component is built into `heimdal-core/fields.js`. No component registration or code generation step needed — `collectionField()` is available on `Hm<T>` directly.
+
 ## Server-driven visibility updates
 
 For predicates that can't be evaluated client-side — database lookups, permission checks, or complex cross-field comparisons like `lteField`/`gteField` — mark the field with `.triggersUpdate()`. When that field changes, the client posts the current form values to the server. The server re-evaluates all section predicates (including those the client can't handle) and returns an authoritative visibility map. The client shows or hides sections accordingly.

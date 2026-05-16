@@ -198,3 +198,87 @@ class HmSelectField extends HmBaseField {
     }
 }
 customElements.define('hm-select-field', HmSelectField);
+
+// ---------------------------------------------------------------------------
+// hm-collection-field
+//
+// Generic inline editable list. Receives a `columns` JS property (array of
+// {name, label, type, required?}) from hm-form and renders an editable table.
+// get value() returns a JavaScript array so JSON.stringify in hm-form nests
+// it correctly as a JSON array in the submitted body.
+// ---------------------------------------------------------------------------
+
+class HmCollectionField extends HTMLElement {
+    #columns = [];
+    #rows    = [];
+
+    set columns(value) {
+        this.#columns = value ?? [];
+        if (this.isConnected) this.#render();
+    }
+
+    get value() {
+        return this.#collectRows();   // returns a JS array, not a string
+    }
+
+    setErrors(messages) {
+        const el = this.querySelector('.hm-error');
+        if (!el) return;
+        el.textContent = messages[0] ?? '';
+        el.hidden = messages.length === 0;
+    }
+
+    connectedCallback() {
+        const raw = this.getAttribute('value') ?? '[]';
+        try { this.#rows = JSON.parse(raw); } catch { this.#rows = []; }
+        if (!Array.isArray(this.#rows)) this.#rows = [];
+        this.#render();
+    }
+
+    #render() {
+        const label    = this.getAttribute('label') ?? '';
+        const required = this.hasAttribute('required');
+        const cols     = this.#columns;
+
+        const headers = cols.map(c => `<th>${c.label}</th>`).join('') + '<th></th>';
+        const bodyRows = this.#rows.map((row, i) => this.#rowHtml(row, i, cols)).join('');
+
+        this.innerHTML = `
+            <div class="hm-collection">
+                <span class="hm-label">${label}${required ? ' <span aria-hidden="true">*</span>' : ''}</span>
+                <table class="hm-collection-table">
+                    <thead><tr>${headers}</tr></thead>
+                    <tbody>${bodyRows}</tbody>
+                </table>
+                <button type="button" class="hm-collection-add">+ Add row</button>
+                <span class="hm-error" hidden></span>
+            </div>`;
+
+        this.querySelector('.hm-collection-add')
+            .addEventListener('click', () => { this.#rows = this.#collectRows(); this.#rows.push({}); this.#render(); });
+
+        this.querySelectorAll('.hm-collection-remove').forEach((btn, i) =>
+            btn.addEventListener('click', () => { this.#rows = this.#collectRows(); this.#rows.splice(i, 1); this.#render(); }));
+    }
+
+    #rowHtml(row, i, cols) {
+        const cells = cols.map(col => {
+            const val  = row[col.name] ?? '';
+            const type = col.type === 'integer' || col.type === 'decimal' ? 'number'
+                       : col.type === 'date' ? 'date' : 'text';
+            return `<td><input type="${type}" data-col="${col.name}" value="${String(val).replace(/"/g, '&quot;')}"></td>`;
+        }).join('');
+        return `<tr>${cells}<td><button type="button" class="hm-collection-remove" title="Remove">✕</button></td></tr>`;
+    }
+
+    #collectRows() {
+        const rows = [];
+        this.querySelectorAll('tbody tr').forEach(tr => {
+            const row = {};
+            tr.querySelectorAll('input[data-col]').forEach(inp => { row[inp.dataset.col] = inp.value; });
+            rows.push(row);
+        });
+        return rows;
+    }
+}
+customElements.define('hm-collection-field', HmCollectionField);

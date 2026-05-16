@@ -37,6 +37,7 @@ public class Claim {
     // Common
     @HmLabel("Description")         private String description;
     @HmLabel("Estimated Amount")    private BigDecimal estimatedAmount;
+    @HmLabel("Witnesses")           private java.util.List<Witness> witnesses = new java.util.ArrayList<>();
 
     public int getId()                              { return id; }
     public void setId(int id)                       { this.id = id; }
@@ -70,4 +71,6 @@ public class Claim {
     public void setDescription(String v)            { this.description = v; }
     public BigDecimal getEstimatedAmount()          { return estimatedAmount; }
     public void setEstimatedAmount(BigDecimal v)    { this.estimatedAmount = v; }
+    public java.util.List<Witness> getWitnesses()   { return witnesses; }
+    public void setWitnesses(java.util.List<Witness> v) { this.witnesses = v; }
 }
