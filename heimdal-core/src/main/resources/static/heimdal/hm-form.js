@@ -51,10 +51,17 @@ class HmForm extends HTMLElement {
     }
 
     #createSection(sectionDef) {
-        const wrapper = document.createElement('div');
-        wrapper.dataset.hmSection    = sectionDef.section;
-        wrapper.dataset.hmVisibleWhen = JSON.stringify(sectionDef.visibleWhen);
+        const wrapper = document.createElement('fieldset');
+        wrapper.className = 'hm-section';
+        wrapper.dataset.hmSection     = sectionDef.section;
+        wrapper.dataset.hmVisibleWhen = JSON.stringify(sectionDef.visibleWhen ?? null);
 
+        if (sectionDef.label) {
+            const legend = document.createElement('legend');
+            legend.className = 'hm-section-label';
+            legend.textContent = sectionDef.label;
+            wrapper.append(legend);
+        }
         for (const fieldDef of sectionDef.items) {
             wrapper.append(this.#createField(fieldDef));
         }
@@ -64,7 +71,7 @@ class HmForm extends HTMLElement {
     // STANDARD_KEYS are handled explicitly; everything else is passed through
     // as a JS property so components can receive arbitrary extra config
     // (e.g. options for selects, currency for money fields).
-    static #STANDARD_KEYS = new Set(['component', 'name', 'label', 'value', 'required', 'validateOn', 'validates']);
+    static #STANDARD_KEYS = new Set(['component', 'name', 'label', 'value', 'required', 'readonly', 'validateOn', 'validates']);
 
     #createField(def) {
         const el = document.createElement(def.component);
@@ -73,6 +80,7 @@ class HmForm extends HTMLElement {
         if (def.label != null) el.setAttribute('label', def.label);
         if (def.value != null) el.setAttribute('value', def.value);
         if (def.required)      el.setAttribute('required', '');
+        if (def.readonly)      el.setAttribute('readonly', '');
 
         for (const [key, val] of Object.entries(def)) {
             if (!HmForm.#STANDARD_KEYS.has(key)) el[key] = val;
@@ -96,7 +104,8 @@ class HmForm extends HTMLElement {
         const values = this.#collectValues();
         for (const section of this.querySelectorAll('[data-hm-section]')) {
             const pred = JSON.parse(section.dataset.hmVisibleWhen);
-            section.hidden = !this.#evaluate(pred, values);
+            // null predicate = always visible (auto-form sections with no condition)
+            section.hidden = pred != null && !this.#evaluate(pred, values);
         }
     }
 

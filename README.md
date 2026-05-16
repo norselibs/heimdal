@@ -49,7 +49,7 @@ Each field is declared in its own lambda. The lambda parameter `f` is `Hm<T>` �
 vh.form(Bike.class, "/bikes",
     f -> f.textField(Bike::getName).required(),
     f -> f.field(Bike::getBikeType).required(),       // enum → hm-select-field automatically
-    f -> f.section(
+    f -> f.section("Suspension",                      // labelled section → <fieldset><legend>
         q -> q.eq(Bike::getBikeType, BikeType.MOUNTAIN),
         s -> s.integerField(Bike::getSuspensionTravel)
               .label("Suspension Travel (mm)").required().validateOnBlur()
@@ -65,6 +65,9 @@ Ran intercepts the getter calls to derive property names, types, and labels. The
 | `.required()` | UI concern, not a domain annotation |
 | `.label("...")` | Only when the token-derived label is wrong or needs a unit |
 | `.validateOnBlur()` | Developer decides which fields justify a server round-trip |
+| `.readonly()` | Field is displayed but not editable |
+
+Sections render as `<fieldset>/<legend>` pairs. A section without a label is an anonymous group.
 
 `vh.form()` dispatches on HTTP method: GET returns the HTML page, POST handles a validate event. Edit forms pass the existing entity as initial values:
 
@@ -111,7 +114,7 @@ public class Bike {
 }
 ```
 
-Available annotations: `@HmRequired`, `@HmLabel`, `@HmMultiline`, `@HmValidateOnBlur`, `@HmComponent`, `@HmExclude`.
+Available annotations: `@HmRequired`, `@HmLabel`, `@HmMultiline`, `@HmValidateOnBlur`, `@HmReadonly`, `@HmComponent`, `@HmExclude`.
 
 ### Sections from DTO structure
 
@@ -210,6 +213,42 @@ def generateFormBuilder = tasks.register('generateFormBuilder', JavaExec) {
 
 sourceSets.main.java.srcDir generatedSourcesDir
 tasks.named('compileJava') { dependsOn generateFormBuilder }
+```
+
+## List pages
+
+Lists use the same varargs-per-item pattern as forms. `l` is a `ListBuilder<T>`:
+
+```java
+vh.list(Bike.class, bikes,
+    l -> l.column(Bike::getName),
+    l -> l.column(Bike::getSuspensionTravel).label("Travel (mm)"),
+    l -> l.column(Bike::getBikeType),
+    l -> l.action("New",  "/bikes/new"),
+    l -> l.rowAction("Edit", bike -> "/bikes/" + bike.getId() + "/edit")
+)
+```
+
+Column labels derive from the property token. Values are serialized via `ComponentRegistry`. The URL producer in `rowAction` can return a `String` or any object whose `toString()` is a URL (including var-http `Route` objects).
+
+### Auto-list
+
+```java
+vh.autoList(Bike.class, bikes,
+    l -> l.action("New",  "/bikes/new"),
+    l -> l.rowAction("Edit", bike -> "/bikes/" + bike.getId() + "/edit")
+)
+```
+
+Columns are inferred from the DTO's registered/primitive properties in declaration order. Complex types and `@HmExclude` fields are skipped. Actions and row actions are still declared explicitly via lambdas.
+
+`hm-list.js` ships with `heimdal-core` and renders a plain HTML table. The wire format includes a `pagination: null` stub reserved for future sort/page support. Add to `StaticController`:
+
+```java
+@Controller(path = "/heimdal/hm-list.js")
+public void hmList(ResponseStream rs, ResponseHeader rh) throws IOException {
+    serve("/static/heimdal/hm-list.js", rs, rh);
+}
 ```
 
 ## Conditional sections

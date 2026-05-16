@@ -9,16 +9,24 @@ import java.util.stream.Collectors;
 
 public class SectionDefinition implements ItemDefinition {
     private final String id;
+    private final String label;        // null = no visible header
     private final PredicateNode visibleWhen;
     private final List<FieldDefinition> fields;
 
-    public SectionDefinition(String id, PredicateNode visibleWhen, List<FieldDefinition> fields) {
+    public SectionDefinition(String id, String label, PredicateNode visibleWhen, List<FieldDefinition> fields) {
         this.id = id;
+        this.label = label;
         this.visibleWhen = visibleWhen;
         this.fields = fields;
     }
 
-    public String getId() { return id; }
+    /** Backwards-compatible no-label constructor. */
+    public SectionDefinition(String id, PredicateNode visibleWhen, List<FieldDefinition> fields) {
+        this(id, null, visibleWhen, fields);
+    }
+
+    public String getId()              { return id; }
+    public String getLabel()           { return label; }
     public PredicateNode getVisibleWhen() { return visibleWhen; }
     public List<FieldDefinition> getFields() { return fields; }
 
@@ -26,7 +34,7 @@ public class SectionDefinition implements ItemDefinition {
     public Map<String, Object> toJson() {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("section", id);
-        // null predicate = always visible (auto-form sections with no explicit condition)
+        if (label != null)       m.put("label", label);
         if (visibleWhen != null) m.put("visibleWhen", visibleWhen.toJson());
         m.put("items", fields.stream().map(FieldDefinition::toJson).collect(Collectors.toList()));
         return m;

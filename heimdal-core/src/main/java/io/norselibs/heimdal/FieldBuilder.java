@@ -31,6 +31,11 @@ public class FieldBuilder<T> {
         return this;
     }
 
+    public FieldBuilder<T> readonly() {
+        def.setReadonly(true);
+        return this;
+    }
+
     public FieldBuilder<T> component(String componentName) {
         def.setComponent(componentName);
         return this;

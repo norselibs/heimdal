@@ -28,6 +28,7 @@ public class AnnotationRegistry {
         register(HmMultiline.class,     (a, f) -> f.multiline());
         register(HmValidateOnBlur.class,(a, f) -> f.validateOnBlur());
         register(HmComponent.class,     (a, f) -> f.component(a.value()));
+        register(HmReadonly.class,      (a, f) -> f.readonly());
         register(HmExclude.class,       (a, f) -> f.exclude());
     }
 

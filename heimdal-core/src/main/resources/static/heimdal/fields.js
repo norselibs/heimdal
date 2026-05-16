@@ -17,7 +17,7 @@
 // ---------------------------------------------------------------------------
 
 class HmBaseField extends HTMLElement {
-    static observedAttributes = ['name', 'label', 'value', 'required'];
+    static observedAttributes = ['name', 'label', 'value', 'required', 'readonly'];
 
     connectedCallback()                          { this._render(); }
     attributeChangedCallback()                   { if (this.isConnected) this._render(); }
@@ -32,6 +32,10 @@ class HmBaseField extends HTMLElement {
 
     _attr(name, fallback = '') {
         return this.getAttribute(name) ?? fallback;
+    }
+
+    _readonly() {
+        return this.hasAttribute('readonly');
     }
 
     _errorSlot() {
@@ -55,7 +59,7 @@ class HmTextField extends HmBaseField {
         this.innerHTML = `
             <label class="hm-field">
                 <span class="hm-label">${label}${required ? ' <span aria-hidden="true">*</span>' : ''}</span>
-                <input type="text" name="${name}" value="${val}"${required ? ' required' : ''}>
+                <input type="text" name="${name}" value="${val}"${required ? ' required' : ''}${this._readonly() ? ' readonly' : ''}>
                 ${this._errorSlot()}
             </label>`;
     }
@@ -78,7 +82,7 @@ class HmTextareaField extends HmBaseField {
         this.innerHTML = `
             <label class="hm-field">
                 <span class="hm-label">${label}${required ? ' <span aria-hidden="true">*</span>' : ''}</span>
-                <textarea name="${name}"${required ? ' required' : ''}>${val}</textarea>
+                <textarea name="${name}"${required ? ' required' : ''}${this._readonly() ? ' readonly' : ''}>${val}</textarea>
                 ${this._errorSlot()}
             </label>`;
     }
@@ -101,7 +105,7 @@ class HmNumberField extends HmBaseField {
         this.innerHTML = `
             <label class="hm-field">
                 <span class="hm-label">${label}${required ? ' <span aria-hidden="true">*</span>' : ''}</span>
-                <input type="number" name="${name}" value="${val}"${required ? ' required' : ''}>
+                <input type="number" name="${name}" value="${val}"${required ? ' required' : ''}${this._readonly() ? ' readonly' : ''}>
                 ${this._errorSlot()}
             </label>`;
     }
@@ -124,7 +128,7 @@ class HmCheckboxField extends HmBaseField {
         const checked = this._attr('value') === 'true';
         this.innerHTML = `
             <label class="hm-field hm-field--checkbox">
-                <input type="checkbox" name="${name}"${checked ? ' checked' : ''}>
+                <input type="checkbox" name="${name}"${checked ? ' checked' : ''}${this._readonly() ? ' disabled' : ''}>
                 <span class="hm-label">${label}</span>
                 ${this._errorSlot()}
             </label>`;
@@ -148,7 +152,7 @@ class HmDateField extends HmBaseField {
         this.innerHTML = `
             <label class="hm-field">
                 <span class="hm-label">${label}${required ? ' <span aria-hidden="true">*</span>' : ''}</span>
-                <input type="date" name="${name}" value="${val}"${required ? ' required' : ''}>
+                <input type="date" name="${name}" value="${val}"${required ? ' required' : ''}${this._readonly() ? ' readonly' : ''}>
                 ${this._errorSlot()}
             </label>`;
     }

@@ -231,6 +231,8 @@ public class VarHeimdal {
                         .hm-field { display: flex; flex-direction: column; margin-bottom: 1rem; }
                         .hm-field input, .hm-field select, .hm-field textarea { padding: .4rem; font-size: 1rem; }
                         .hm-error { color: crimson; font-size: .875rem; }
+                        fieldset.hm-section { border: 1px solid #ddd; padding: 1rem; margin-bottom: 1rem; }
+                        fieldset.hm-section legend { font-weight: 600; padding: 0 .4rem; }
                         .hm-actions { margin-top: 1rem; }
                         button[type=submit] { padding: .5rem 1.5rem; font-size: 1rem; cursor: pointer; }
                     </style>

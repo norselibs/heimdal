@@ -67,12 +67,18 @@ public class FormBuilder<T> {
     @SuppressWarnings("unchecked")
     public FormBuilder<T> section(Consumer<Q<T>> predicateConsumer,
                                    Consumer<FormBuilder<T>>... bodyDefs) {
+        return section(null, predicateConsumer, bodyDefs);
+    }
+
+    @SuppressWarnings("unchecked")
+    public FormBuilder<T> section(String label, Consumer<Q<T>> predicateConsumer,
+                                   Consumer<FormBuilder<T>>... bodyDefs) {
         var predicate = new Q<>(proxyInstance, queryWrapper);
         predicateConsumer.accept(predicate);
         var bodyBuilder = new FormBuilder<>(this);
         for (var def : bodyDefs) def.accept(bodyBuilder);
         String sectionId = "s" + sectionCounter.getAndIncrement();
-        items.add(new SectionDefinition(sectionId, predicate.build(), bodyBuilder.fieldItems()));
+        items.add(new SectionDefinition(sectionId, label, predicate.build(), bodyBuilder.fieldItems()));
         return this;
     }
 
@@ -148,7 +154,8 @@ public class FormBuilder<T> {
 
         if (!sectionFields.isEmpty()) {
             String sectionId = "s" + sectionCounter.getAndIncrement();
-            items.add(new SectionDefinition(sectionId, null, sectionFields));
+            String label = titleCase(property.getToken().humanReadable());
+            items.add(new SectionDefinition(sectionId, label, null, sectionFields));
         }
     }
 
@@ -162,6 +169,12 @@ public class FormBuilder<T> {
             }
         } catch (Exception ignored) {}
         return null;
+    }
+
+    static String titleCase(String s) {
+        return java.util.Arrays.stream(s.split(" "))
+                .map(w -> w.isEmpty() ? w : Character.toUpperCase(w.charAt(0)) + w.substring(1).toLowerCase())
+                .collect(java.util.stream.Collectors.joining(" "));
     }
 
     static Annotation[] fieldAnnotations(Class<?> cls, String fieldName) {
@@ -188,6 +201,7 @@ public class FormBuilder<T> {
         @Override public AutoFieldConfig label(String label)         { def.setLabel(label);             return this; }
         @Override public AutoFieldConfig multiline()                 { def.setComponent("hm-textarea-field"); return this; }
         @Override public AutoFieldConfig validateOnBlur()            { def.setValidateOn("blur");       return this; }
+        @Override public AutoFieldConfig readonly()                  { def.setReadonly(true);           return this; }
         @Override public AutoFieldConfig component(String name)      { def.setComponent(name);          return this; }
         @Override public void           exclude()                    { excluded = true; }
     }

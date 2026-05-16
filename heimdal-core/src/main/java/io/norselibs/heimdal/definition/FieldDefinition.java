@@ -21,6 +21,7 @@ public class FieldDefinition implements ItemDefinition {
     String component;
     Object initialValue;
     boolean required = false;
+    boolean readonly = false;
     String validateOn = null;
     List<String> validates;
 
@@ -44,6 +45,7 @@ public class FieldDefinition implements ItemDefinition {
     public void setLabel(String label)       { this.label = label; }
     public void setComponent(String c)       { this.component = c; }
     public void setRequired(boolean r)       { this.required = r; }
+    public void setReadonly(boolean r)       { this.readonly = r; }
     public void setValidateOn(String event)  { this.validateOn = event; }
     public void setValidates(List<String> v) { this.validates = v; }
 
@@ -63,9 +65,8 @@ public class FieldDefinition implements ItemDefinition {
         m.put("name", name);
         m.put("label", label);
         m.put("value", registration.serialize(initialValue));
-        if (required) {
-            m.put("required", true);
-        }
+        if (required)  m.put("required", true);
+        if (readonly)  m.put("readonly", true);
         if (validateOn != null) {
             m.put("validateOn", validateOn);
             m.put("validates", validates);

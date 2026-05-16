@@ -13,6 +13,7 @@ public interface AutoFieldConfig {
     AutoFieldConfig label(String label);
     AutoFieldConfig multiline();
     AutoFieldConfig validateOnBlur();
+    AutoFieldConfig readonly();
     AutoFieldConfig component(String componentName);
     void exclude();
 }
