@@ -44,7 +44,7 @@ public class MaterialVarHeimdal extends VarHeimdal {
 
     @Override
     protected String pageShell(String formJson) {
-        String path = currentPath();
+        String path = requestPath();
         return """
                 <!DOCTYPE html>
                 <html lang="en">
@@ -74,7 +74,7 @@ public class MaterialVarHeimdal extends VarHeimdal {
 
     @Override
     protected String listPageShell(String listJson) {
-        String path = currentPath();
+        String path = requestPath();
         return """
                 <!DOCTYPE html>
                 <html lang="en">
