@@ -18,6 +18,7 @@ public class HeimdallApp {
             config.setObjectFactory(odinJector::getInstance);
             config.addParameterHandler(MaterialVarHeimdalParameterHandler.class);
             config.addController(BikeFormController.class);
+            config.addController(ClaimFormController.class);
             config.addController(StaticController.class);
         });
 

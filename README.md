@@ -79,8 +79,7 @@ Ran intercepts the getter calls to derive property names, types, and labels. The
 `Validators` provides named rules with sensible default messages:
 
 ```java
-f -> f.textField(Claim::getEmail)
-       .validate(Validators.email())
+f -> f.textField(Claim::getEmail).validate(Validators.email())
 
 f -> f.textField(Bike::getName)
        .validate(Validators.minLength(3))
@@ -90,20 +89,55 @@ f -> f.textField(Claim::getPostalCode)
        .validate(Validators.pattern("\\d{4,6}", "Must be a 4–6 digit postal code"))
 ```
 
-Available: `minLength(n)`, `maxLength(n)`, `email()`, `pattern(regex, message)`, `numeric()`.
+Available: `minLength(n)`, `maxLength(n)`, `email()`, `pattern(regex, message)`, `numeric()`. Convenience shorthands: `.minLength(n)` and `.maxLength(n)` directly on `FieldBuilder`.
 
-Attaching any validator automatically enables blur-time validation — no need to also call `.validateOnBlur()`. Custom validators are plain lambdas:
+Attaching any validator automatically enables blur-time validation. Custom validators are plain lambdas:
 
 ```java
 f -> f.textField(Bike::getName)
        .validate(v -> v.contains(" ") ? Optional.empty() : Optional.of("Must include a space"))
 ```
 
-The second `.validate(rule, message)` overload replaces the rule's default message:
+### Predicate validators
+
+Use the same `q ->` algebra for value comparisons. The message comes first to avoid overload ambiguity:
 
 ```java
-.validate(Validators.minLength(3), "Name too short")
+f -> f.dateField(Claim::getIncidentDate).required()
+       .validate("Cannot be in the future",
+                 q -> q.lte(Claim::getIncidentDate, LocalDate.now()))
 ```
+
+Available comparisons (lexicographic — correct for ISO 8601 dates): `lte`, `gte`, `lt`, `gt`.
+
+For cross-field comparisons use `ltField`, `lteField`, `gtField`, `gteField`:
+
+```java
+f -> f.dateField(Claim::getTripEndDate)
+       .validate("Must be after start date",
+                 q -> q.gtField(Claim::getTripEndDate, Claim::getTripStartDate))
+```
+
+## Context predicates
+
+Fields whose presence depends on server-side context (user role, request attributes) use `when(boolean, body)`. The boolean is evaluated once at form-build time and never goes to the wire:
+
+```java
+f -> f.when(user.getAuthority() == Authority.STANDARD, s ->
+        s.decimalField(Claim::getEstimatedAmount))
+```
+
+## Actions
+
+Forms can declare multiple named submit buttons, each posting to its own URL. `enabledWhen` is evaluated client-side:
+
+```java
+f -> f.action("Save Draft", "/claims/draft"),
+f -> f.action("Submit Claim", "/claims/submit")
+       .enabledWhen(q -> q.allRequiredFieldsValid())
+```
+
+`allRequiredFieldsValid()` is the built-in predicate that checks every required field has a non-empty value. The client re-evaluates on every input change and disables/enables buttons accordingly.
 
 Sections render as `<fieldset>/<legend>` pairs. A section without a label is an anonymous group.
 
@@ -280,12 +314,15 @@ vh.autoList(Bike.class, bikes,
 
 Columns are inferred from the DTO's registered/primitive properties in declaration order. Complex types and `@HmExclude` fields are skipped. Actions and row actions are still declared explicitly via lambdas.
 
-`hm-list.js` ships with `heimdal-core` and renders a plain HTML table. The wire format includes a `pagination: null` stub reserved for future sort/page support. Add to `StaticController`:
+`hm-list.js` ships with `heimdal-core` and renders a plain HTML table. The wire format includes a `pagination: null` stub reserved for future sort/page support.
+
+The recommended `StaticController` pattern uses wildcard path variables so no code change is needed when adding new assets:
 
 ```java
-@Controller(path = "/heimdal/hm-list.js")
-public void hmList(ResponseStream rs, ResponseHeader rh) throws IOException {
-    serve("/static/heimdal/hm-list.js", rs, rh);
+@Controller(path = "/heimdal/{file}")
+public void heimdal(@PathVariable(name = "file") String file,
+                     ResponseStream rs, ResponseHeader rh) throws IOException {
+    serve("/static/heimdal/" + sanitize(file), contentType(file), rs, rh);
 }
 ```
 

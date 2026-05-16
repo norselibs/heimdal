@@ -2,6 +2,7 @@ package io.norselibs.heimdal.integrationtest;
 
 import io.varhttp.Controller;
 import io.varhttp.ControllerClass;
+import io.varhttp.PathVariable;
 import io.varhttp.ResponseHeader;
 import io.varhttp.ResponseStream;
 
@@ -11,47 +12,37 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Serves static assets from classpath resources.
+ * Serves static assets from classpath resources using wildcard path variables.
  * A real deployment would use a CDN or proper asset pipeline.
  */
 @ControllerClass
 public class StaticController {
 
-    @Controller(path = "/heimdal/hm-form.js")
-    public void hmForm(ResponseStream rs, ResponseHeader rh) throws IOException {
-        serveJs("/static/heimdal/hm-form.js", rs, rh);
+    @Controller(path = "/heimdal/{file}")
+    public void heimdal(@PathVariable(name = "file") String file,
+                         ResponseStream rs, ResponseHeader rh) throws IOException {
+        serve("/static/heimdal/" + sanitize(file), contentType(file), rs, rh);
     }
 
-    @Controller(path = "/heimdal/fields.js")
-    public void fields(ResponseStream rs, ResponseHeader rh) throws IOException {
-        serveJs("/static/heimdal/fields.js", rs, rh);
+    @Controller(path = "/heimdal-material/{file}")
+    public void heimdalMaterial(@PathVariable(name = "file") String file,
+                                 ResponseStream rs, ResponseHeader rh) throws IOException {
+        serve("/static/heimdal-material/" + sanitize(file), contentType(file), rs, rh);
     }
 
-    @Controller(path = "/heimdal/hm-list.js")
-    public void hmList(ResponseStream rs, ResponseHeader rh) throws IOException {
-        serveJs("/static/heimdal/hm-list.js", rs, rh);
+    private static String sanitize(String file) {
+        // Only allow safe filename characters — prevent path traversal
+        return file.replaceAll("[^a-zA-Z0-9._-]", "");
     }
 
-    @Controller(path = "/heimdal-material/forms.css")
-    public void materialCss(ResponseStream rs, ResponseHeader rh) throws IOException {
-        serveCss("/static/heimdal-material/forms.css", rs, rh);
-    }
-
-    private void serveJs(String path, ResponseStream rs, ResponseHeader rh) throws IOException {
-        serve(path, "application/javascript", rs, rh);
-    }
-
-    private void serveCss(String path, ResponseStream rs, ResponseHeader rh) throws IOException {
-        serve(path, "text/css", rs, rh);
+    private static String contentType(String file) {
+        return file.endsWith(".css") ? "text/css" : "application/javascript";
     }
 
     private void serve(String resourcePath, String contentType, ResponseStream rs, ResponseHeader rh)
             throws IOException {
         try (InputStream is = getClass().getResourceAsStream(resourcePath)) {
-            if (is == null) {
-                rh.setStatus(404);
-                return;
-            }
+            if (is == null) { rh.setStatus(404); return; }
             OutputStream out = rs.getOutputStream(contentType, StandardCharsets.UTF_8);
             is.transferTo(out);
         }

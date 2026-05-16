@@ -211,6 +211,21 @@ public class FormBuilderSourceGenerator {
                 // which differs from FormBuilder's section(Consumer,Consumer[]), so no clash.
                 // Java prefers non-varargs when both match, so f.section(pred, s -> ...) uses this
                 // overload and types s as Hm<T>.
+                // Always-visible labelled section — erasure (String,Consumer) differs from
+                // (String,Consumer,Consumer) so no conflict with the predicate overload.
+                // Context predicate — server-side boolean evaluated at form-build time.
+                // Only in Hm to avoid erasure clash with FormBuilder.when(boolean, Consumer<FormBuilder<T>>).
+                + "    public Hm<T> when(boolean condition, Consumer<Hm<T>> body) {\n"
+                + "        if (condition) body.accept(this);\n"
+                + "        return this;\n"
+                + "    }\n\n"
+                + "    public Hm<T> section(String label, Consumer<Hm<T>> body) {\n"
+                + "        var bodyBuilder = new Hm<>(this);\n"
+                + "        body.accept(bodyBuilder);\n"
+                + "        String sectionId = \"s\" + sectionCounter.getAndIncrement();\n"
+                + "        items.add(new SectionDefinition(sectionId, label, null, bodyBuilder.fieldItems()));\n"
+                + "        return this;\n"
+                + "    }\n\n"
                 + "    public Hm<T> section(\n"
                 + "            Consumer<Q<T>> predicateConsumer,\n"
                 + "            Consumer<Hm<T>> body) {\n"

@@ -4,6 +4,7 @@ import io.ran.Clazz;
 import io.ran.Property;
 import io.norselibs.heimdal.ComponentRegistration;
 import io.norselibs.heimdal.ComponentRegistry;
+import io.norselibs.heimdal.ContextValidator;
 import io.norselibs.heimdal.Validator;
 
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ public class FieldDefinition implements ItemDefinition {
     String validateOn = null;
     List<String> validates;
     private final List<Validator> validators = new ArrayList<>();
+    private final List<ContextValidator> contextValidators = new ArrayList<>();
 
     public FieldDefinition(Property<?> property, Object initialValue) {
         this.property = property;
@@ -48,8 +50,10 @@ public class FieldDefinition implements ItemDefinition {
     public void setComponent(String c)       { this.component = c; }
     public void setRequired(boolean r)       { this.required = r; }
     public void setReadonly(boolean r)       { this.readonly = r; }
-    public void addValidator(Validator v)    { this.validators.add(v); }
-    public List<Validator> getValidators()   { return validators; }
+    public void addValidator(Validator v)                  { this.validators.add(v); }
+    public List<Validator> getValidators()                 { return validators; }
+    public void addContextValidator(ContextValidator cv)   { this.contextValidators.add(cv); }
+    public List<ContextValidator> getContextValidators()   { return contextValidators; }
     public void setValidateOn(String event)  { this.validateOn = event; }
     public void setValidates(List<String> v) { this.validates = v; }
 

@@ -38,13 +38,16 @@ class HmForm extends HTMLElement {
         for (const action of this.#schema.actions ?? []) {
             if (action.type === 'submit') {
                 const btn = document.createElement('button');
-                btn.type = 'submit';
+                btn.type = 'button';
                 btn.textContent = action.label;
+                btn.dataset.hmActionUrl = action.url ?? '';
+                btn.dataset.hmEnabledWhen = action.enabledWhen ? JSON.stringify(action.enabledWhen) : '';
+                btn.addEventListener('click', () => this.#submitTo(action.url ?? ''));
                 actions.append(btn);
             }
         }
         form.append(actions);
-        form.addEventListener('submit', e => { e.preventDefault(); this.#submit(); });
+        this.#updateActionStates();
 
         this.append(form);
         this.#evaluateSections();
@@ -107,9 +110,23 @@ class HmForm extends HTMLElement {
             // null predicate = always visible (auto-form sections with no condition)
             section.hidden = pred != null && !this.#evaluate(pred, values);
         }
+        this.#updateActionStates();
+    }
+
+    #updateActionStates() {
+        const values = this.#collectValues();
+        for (const btn of this.querySelectorAll('[data-hm-action-url]')) {
+            const raw = btn.dataset.hmEnabledWhen;
+            if (!raw) continue;
+            btn.disabled = !this.#evaluate(JSON.parse(raw), values);
+        }
     }
 
     #evaluate(pred, values) {
+        if (pred.op === 'allRequiredValid') {
+            return [...this.#fields.values()]
+                .every(el => !el.hasAttribute('required') || (el.value ?? '').trim() !== '');
+        }
         const v = values[pred.field] ?? '';
         switch (pred.op) {
             case 'eq':  return v === String(pred.value);
@@ -144,10 +161,10 @@ class HmForm extends HTMLElement {
         this.#applyErrors(result.errors ?? {});
     }
 
-    async #submit() {
+    async #submitTo(url) {
         let res;
         try {
-            res = await fetch(this.#schema.submitEndpoint, {
+            res = await fetch(url || this.#schema.submitEndpoint, {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body:    JSON.stringify(this.#collectValues())

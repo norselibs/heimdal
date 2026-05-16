@@ -15,11 +15,13 @@ public class FormDefinition<T> {
     private final Clazz<T> clazz;
     private final List<ItemDefinition> items;
     private final String submitUrl;
+    private final List<FormActionDef> actions;
 
     FormDefinition(FormBuilder<T> builder) {
         this.clazz = builder.clazz;
         this.items = List.copyOf(builder.items);
         this.submitUrl = builder.submitUrl;
+        this.actions = List.copyOf(builder.actions);
     }
 
     /**
@@ -34,7 +36,13 @@ public class FormDefinition<T> {
         json.put("eventEndpoint", contextPath + "/heimdal/" + formId + "/event");
         json.put("submitEndpoint", submitUrl != null ? submitUrl : contextPath + "/heimdal/" + formId + "/submit");
         json.put("items", items.stream().map(ItemDefinition::toJson).collect(Collectors.toList()));
-        json.put("actions", List.of(Map.of("type", "submit", "label", "Save")));
+        if (!actions.isEmpty()) {
+            json.put("actions", actions.stream().map(FormActionDef::toJson).collect(Collectors.toList()));
+        } else {
+            // Legacy fallback: single "Save" button posting to submitUrl
+            json.put("actions", List.of(Map.of("type", "submit", "label", "Save",
+                    "url", submitUrl != null ? submitUrl : "")));
+        }
         return json;
     }
 
@@ -52,23 +60,26 @@ public class FormDefinition<T> {
         for (String fieldName : trigger.getValidates()) {
             FieldDefinition field = findField(fieldName);
             if (field == null || !isVisible(field, values)) continue;
-            errors.put(fieldName, validateField(field, values.get(fieldName)));
+            errors.put(fieldName, validateField(field, values.get(fieldName), values));
         }
         return errors;
     }
 
     // --- internals ---
 
-    private List<String> validateField(FieldDefinition field, String rawValue) {
+    private List<String> validateField(FieldDefinition field, String rawValue,
+                                        Map<String, String> allValues) {
         List<String> errors = new ArrayList<>();
         String value = rawValue != null ? rawValue.trim() : "";
         if (field.isRequired() && value.isEmpty()) {
             errors.add(field.getLabel() + " is required");
         }
-        // Run additional validators — skip on empty values so optional fields aren't validated
         if (!value.isEmpty()) {
             for (var validator : field.getValidators()) {
                 validator.validate(value).ifPresent(errors::add);
+            }
+            for (var cv : field.getContextValidators()) {
+                cv.validate(value, allValues).ifPresent(errors::add);
             }
         }
         return errors;

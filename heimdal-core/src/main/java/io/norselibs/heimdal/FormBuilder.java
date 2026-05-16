@@ -28,6 +28,7 @@ public class FormBuilder<T> {
     final QueryWrapper queryWrapper;
     final TypeDescriber<T> typeDescriber;
     final List<ItemDefinition> items = new ArrayList<>();
+    final List<FormActionDef> actions = new ArrayList<>();
     final AtomicInteger sectionCounter;
     String submitUrl;
 
@@ -43,6 +44,12 @@ public class FormBuilder<T> {
         }
         this.queryWrapper = (QueryWrapper) this.proxyInstance;
         this.sectionCounter = new AtomicInteger(0);
+    }
+
+    public ActionBuilder<T> action(String label, String url) {
+        var def = new FormActionDef(label, url);
+        actions.add(def);
+        return new ActionBuilder<>(this, def);
     }
 
     // Shared-proxy constructor for section body builders
