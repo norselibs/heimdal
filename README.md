@@ -44,6 +44,92 @@ heimdal-integration-test  Runnable demo. Full bike CRUD with both explicit and
                           auto forms/lists. Uses heimdal-material for styling.
 ```
 
+## A component, end to end
+
+This walkthrough shows the complete lifecycle of a custom component: the frontend team writes it, the generator picks it up, the backend team uses it, and it renders in the browser.
+
+### 1 — Frontend: define the component
+
+The frontend developer creates `src/main/resources/static/heimdal/custom-fields.js`. The `static heimdal` block is the only thing the form framework reads:
+
+```javascript
+/**
+ * hm-rating-field  —  1–5 star rating backed by an integer.
+ * default: false means this is an alternative to hm-number-field,
+ * not a replacement for it as the canonical integer component.
+ */
+class HmRatingField extends HTMLElement {
+    static heimdal = { type: 'integer', default: false };
+
+    get value() {
+        const checked = this.querySelector('input[type=radio]:checked');
+        return checked ? checked.value : '';
+    }
+
+    setErrors(messages) {
+        const el = this.querySelector('.hm-error');
+        if (!el) return;
+        el.textContent = messages[0] ?? '';
+        el.hidden = messages.length === 0;
+    }
+
+    connectedCallback() { this._render(); }
+
+    _render() {
+        const name    = this.getAttribute('name') ?? '';
+        const label   = this.getAttribute('label') ?? '';
+        const current = this.getAttribute('value') ?? '';
+        const stars   = [1,2,3,4,5].map(n => `
+            <label>
+                <input type="radio" name="${name}" value="${n}"
+                       ${String(n) === current ? 'checked' : ''}>★
+            </label>`).join('');
+        this.innerHTML = `
+            <div class="hm-field">
+                <span class="hm-label">${label}</span>
+                <div>${stars}</div>
+                <span class="hm-error" hidden></span>
+            </div>`;
+    }
+}
+customElements.define('hm-rating-field', HmRatingField);
+```
+
+**Contract with `hm-form`:** `get value()` returns the current value as a string; `setErrors(messages)` displays or clears inline validation errors.
+
+### 2 — Generator: produce the typed method
+
+`./gradlew generateFormBuilder` scans all `*.js` files under `static/heimdal/` from every JAR and resource directory on the classpath. It reads `static heimdal = { type: 'integer', default: false }` and adds to `Hm.java`:
+
+```java
+// Generated — do not edit
+public FieldBuilder<T> ratingField(Function<T, java.lang.Integer> getter) {
+    return field(getter).component("hm-rating-field");
+}
+```
+
+`default: false` means integer fields still default to `hm-number-field`; `ratingField()` is an opt-in alternative that explicitly sets the component override.
+
+### 3 — Backend: use it in a form
+
+```java
+vh.form(Bike.class, "/bikes/save",
+    f -> f.textField(Bike::getName).required(),
+    f -> f.ratingField(Bike::getRating)          // typed — only accepts Function<T, Integer>
+           .label("Overall Rating")
+           .required(),
+    f -> f.field(Bike::getBikeType).required()
+)
+```
+
+IDE completion shows `ratingField` alongside `textField`, `dateField`, `integerField` etc. Passing a getter that returns the wrong type is a compile error.
+
+### 4 — In the browser
+
+![Rating field rendered in the form](docs/screenshots/rating-field.png)
+
+---
+
 ## Form builder
 
 Each field is declared in its own lambda. The lambda parameter `f` is `Hm<T>` — a generated typed form builder that exposes a method for each registered component:
