@@ -129,15 +129,48 @@ f -> f.when(user.getAuthority() == Authority.STANDARD, s ->
 
 ## Actions
 
-Forms can declare multiple named submit buttons, each posting to its own URL. `enabledWhen` is evaluated client-side:
+Forms can declare multiple named submit buttons, each posting to its own URL. `enabledWhen` is evaluated client-side on every input change:
 
 ```java
 f -> f.action("Save Draft", "/claims/draft"),
 f -> f.action("Submit Claim", "/claims/submit")
        .enabledWhen(q -> q.allRequiredFieldsValid())
+       .onError(DuplicateClaimException.class, (e, err) ->
+           err.field(Claim::getPolicyNumber, "A claim already exists for this policy"))
 ```
 
-`allRequiredFieldsValid()` is the built-in predicate that checks every required field has a non-empty value. The client re-evaluates on every input change and disables/enables buttons accordingly.
+`allRequiredFieldsValid()` only considers fields in **visible** sections — hidden conditional sections are excluded from the check.
+
+`onError` registers a domain exception handler. When the save throws, Heimdal checks the registered handlers and returns a 422 with field errors if one matches, or rethrows if none do.
+
+### Wiring save handlers with onError
+
+Build a minimal form definition with just the action builders, then pass it to `vh.save()`:
+
+```java
+// Build def once — carries the action builders and their onError handlers.
+// The proxy instance is still needed for getter → field name resolution in FieldErrors.
+private FormDefinition<Claim> actionDef(Claim claim, String submitUrl) {
+    var hm = Form.of(Claim.class, claim);
+    hm.action("Submit Claim", submitUrl)
+      .enabledWhen(q -> q.allRequiredFieldsValid())
+      .onError(DuplicateClaimException.class, (e, err) ->
+          err.field(Claim::getPolicyNumber, "A claim already exists for this policy"));
+    return hm.build();
+}
+
+@Controller(path = "/claims/save", httpMethods = HttpMethod.POST)
+public Object saveClaim(@RequestBody Claim claim, VarHeimdal vh) throws Exception {
+    return vh.save(claim, actionDef(claim, "/claims/save"), this::submitClaim, "/claims");
+}
+
+private void submitClaim(Claim claim) throws DuplicateClaimException {
+    if (isDuplicate(claim)) throw new DuplicateClaimException(claim.getPolicyNumber());
+    claimRepository.save(claim);
+}
+```
+
+`vh.save()` accepts a `ThrowingConsumer<T>` so the handler can throw checked exceptions directly.
 
 Sections render as `<fieldset>/<legend>` pairs. A section without a label is an anonymous group.
 

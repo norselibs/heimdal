@@ -8,6 +8,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
+// ThrowingConsumer used via ThrowingConsumer<T>
 import java.util.stream.Collectors;
 
 /**
@@ -71,6 +73,33 @@ public class VarHeimdal {
         var builder = Form.of(clazz, initialValue);
         builder.submitUrl(submitUrl);
         return dispatch(builder.autoBuild());
+    }
+
+    /**
+     * Runs a save handler and applies any matching {@code onError} handlers
+     * registered on the form's actions. Returns a 422 with field errors if a
+     * handler matched; otherwise returns a redirect to the given URL.
+     *
+     * <pre>
+     * public Object save(@RequestBody Claim claim, VarHeimdal vh) throws Exception {
+     *     return vh.save(claim, formDef, c -> claimService.submit(c), "/claims");
+     * }
+     * </pre>
+     *
+     * The {@code FormDefinition} is obtained by building the form and calling {@code build()}
+     * directly when you need to share it between GET (render) and POST (save).
+     */
+    public <T> Object save(T model, FormDefinition<T> def,
+                           ThrowingConsumer<T> handler, String redirectUrl) throws Exception {
+        try {
+            handler.accept(model);
+            return Map.of("redirect", redirectUrl);
+        } catch (Exception ex) {
+            var errors = def.handleException(ex);
+            if (errors == null) throw ex;
+            ctx.response().setStatus(422);
+            return Map.of("errors", errors);
+        }
     }
 
     /** Auto-form with an existing entity for initial values. */

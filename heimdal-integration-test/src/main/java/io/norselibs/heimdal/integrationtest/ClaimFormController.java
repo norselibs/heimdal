@@ -1,5 +1,7 @@
 package io.norselibs.heimdal.integrationtest;
 
+import io.norselibs.heimdal.Form;
+import io.norselibs.heimdal.FormDefinition;
 import io.norselibs.heimdal.VarHeimdal;
 import io.norselibs.heimdal.Validators;
 import io.varhttp.Controller;
@@ -71,10 +73,17 @@ public class ClaimFormController {
     }
 
     @Controller(path = "/claims/save", httpMethods = HttpMethod.POST)
-    public Map<String, Object> saveClaim(@RequestBody Claim claim) {
+    public Object saveClaim(@RequestBody Claim claim, VarHeimdal vh) throws Exception {
+        return vh.save(claim, actionDef(claim, "/claims/save"), this::submitClaim, "/claims");
+    }
+
+    private void submitClaim(Claim claim) throws DuplicateClaimException {
+        boolean duplicate = CLAIMS.stream()
+                .anyMatch(c -> c.getPolicyNumber() != null
+                        && c.getPolicyNumber().equals(claim.getPolicyNumber()));
+        if (duplicate) throw new DuplicateClaimException(claim.getPolicyNumber());
         claim.setId(nextId.getAndIncrement());
         CLAIMS.add(claim);
-        return Map.of("redirect", "/claims");
     }
 
     // -------------------------------------------------------------------------
@@ -87,11 +96,11 @@ public class ClaimFormController {
     }
 
     @Controller(path = "/claims/{id}/save", httpMethods = HttpMethod.POST)
-    public Map<String, Object> updateClaim(@PathVariable(name = "id") int id,
-                                            @RequestBody Claim claim) {
-        claim.setId(id);
-        CLAIMS.replaceAll(c -> c.getId() == id ? claim : c);
-        return Map.of("redirect", "/claims");
+    public Object updateClaim(@PathVariable(name = "id") int id,
+                               @RequestBody Claim claim, VarHeimdal vh) throws Exception {
+        return vh.save(claim, actionDef(claim, "/claims/" + id + "/save"),
+                c -> { c.setId(id); CLAIMS.replaceAll(e -> e.getId() == id ? c : e); },  // no checked exception
+                "/claims");
     }
 
     // -------------------------------------------------------------------------
@@ -100,6 +109,20 @@ public class ClaimFormController {
 
     // Simulate user authority — in a real app this comes from the request context
     private static final boolean IS_STANDARD_USER = true;
+
+    /**
+     * Builds a FormDefinition carrying only the action builders and their onError handlers.
+     * Used by save handlers so vh.save() can resolve domain exceptions to field errors.
+     * The proxy instance is still needed (for FieldErrors getter → name resolution).
+     */
+    private FormDefinition<Claim> actionDef(Claim claim, String submitUrl) {
+        var hm = Form.of(Claim.class, claim);
+        hm.action("Submit Claim", submitUrl)
+          .enabledWhen(q -> q.allRequiredFieldsValid())
+          .onError(DuplicateClaimException.class, (e, err) ->
+              err.field(Claim::getPolicyNumber, "A claim already exists for this policy"));
+        return hm.build();
+    }
 
     private Object buildForm(VarHeimdal vh, Claim claim, String submitUrl) throws Exception {
         return vh.form(Claim.class, claim, submitUrl,

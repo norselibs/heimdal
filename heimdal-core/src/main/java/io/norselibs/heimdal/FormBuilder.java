@@ -29,6 +29,7 @@ public class FormBuilder<T> {
     final TypeDescriber<T> typeDescriber;
     final List<ItemDefinition> items = new ArrayList<>();
     final List<FormActionDef> actions = new ArrayList<>();
+    final List<ActionBuilder<T>> actionBuilders = new ArrayList<>();
     final AtomicInteger sectionCounter;
     String submitUrl;
 
@@ -49,7 +50,9 @@ public class FormBuilder<T> {
     public ActionBuilder<T> action(String label, String url) {
         var def = new FormActionDef(label, url);
         actions.add(def);
-        return new ActionBuilder<>(this, def);
+        var builder = new ActionBuilder<>(this, def);
+        actionBuilders.add(builder);
+        return builder;
     }
 
     // Shared-proxy constructor for section body builders

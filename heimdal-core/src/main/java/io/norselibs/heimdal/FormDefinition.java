@@ -1,6 +1,7 @@
 package io.norselibs.heimdal;
 
 import io.ran.Clazz;
+import io.ran.QueryWrapper;
 import io.norselibs.heimdal.definition.FieldDefinition;
 import io.norselibs.heimdal.definition.ItemDefinition;
 import io.norselibs.heimdal.definition.SectionDefinition;
@@ -13,15 +14,21 @@ import java.util.stream.Collectors;
 
 public class FormDefinition<T> {
     private final Clazz<T> clazz;
+    private final T proxyInstance;
+    private final QueryWrapper queryWrapper;
     private final List<ItemDefinition> items;
     private final String submitUrl;
     private final List<FormActionDef> actions;
+    private final List<ActionBuilder<T>> actionBuilders;
 
     FormDefinition(FormBuilder<T> builder) {
         this.clazz = builder.clazz;
+        this.proxyInstance = builder.proxyInstance;
+        this.queryWrapper = builder.queryWrapper;
         this.items = List.copyOf(builder.items);
         this.submitUrl = builder.submitUrl;
         this.actions = List.copyOf(builder.actions);
+        this.actionBuilders = List.copyOf(builder.actionBuilders);
     }
 
     /**
@@ -44,6 +51,21 @@ public class FormDefinition<T> {
                     "url", submitUrl != null ? submitUrl : "")));
         }
         return json;
+    }
+
+    /**
+     * Tries to handle a domain exception using registered {@code onError} handlers.
+     * Returns the field errors if a handler matched, or {@code null} if unhandled
+     * (caller should rethrow).
+     */
+    public Map<String, List<String>> handleException(Exception ex) {
+        for (var builder : actionBuilders) {
+            var errors = new FieldErrors<>(proxyInstance, queryWrapper);
+            if (builder.tryHandle(ex, errors)) {
+                return errors.toMap();
+            }
+        }
+        return null;
     }
 
     /**

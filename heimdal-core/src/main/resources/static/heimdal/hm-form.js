@@ -125,6 +125,10 @@ class HmForm extends HTMLElement {
     #evaluate(pred, values) {
         if (pred.op === 'allRequiredValid') {
             return [...this.#fields.values()]
+                .filter(el => {
+                    const section = el.closest('[data-hm-section]');
+                    return !section || !section.hidden;
+                })
                 .every(el => !el.hasAttribute('required') || (el.value ?? '').trim() !== '');
         }
         const v = values[pred.field] ?? '';
