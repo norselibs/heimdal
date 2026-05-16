@@ -206,10 +206,25 @@ public class VarHeimdal {
 
     // -------------------------------------------------------------------------
 
-    /** True when the client wants JSON rather than the HTML page shell (e.g. a React SPA). */
+    /** True when the client requests the raw JSON schema rather than the HTML page shell. */
     private boolean wantsJson() {
-        String accept = ctx.request().getHeader("Accept");
-        return accept != null && accept.contains("application/json") && !accept.contains("text/html");
+        return "json".equals(ctx.request().getParameter("format"));
+    }
+
+    /** Adds nav metadata to a JSON schema map when responding to API clients. */
+    private void injectNav(Map<String, Object> json) {
+        if (appNameHtml != null) json.put("appName", appNameHtml);
+        if (!menuItems.isEmpty()) {
+            json.put("navItems", menuItems.stream()
+                    .map(m -> {
+                        var item = new java.util.LinkedHashMap<String, Object>();
+                        item.put("label", m.label());
+                        item.put("url", m.url());
+                        if (m.iconHtml() != null) item.put("iconHtml", m.iconHtml());
+                        return item;
+                    })
+                    .collect(java.util.stream.Collectors.toList()));
+        }
     }
 
     private <T> String renderList(ListDefinition<T> def) throws Exception {
@@ -221,8 +236,11 @@ public class VarHeimdal {
         serializer.serialize(sw, json, "application/json");
 
         if (wantsJson()) {
+            injectNav(json);
+            java.io.StringWriter sw2 = new java.io.StringWriter();
+            serializer.serialize(sw2, json, "application/json");
             ctx.setContentType("application/json; charset=UTF-8");
-            return sw.toString();
+            return sw2.toString();
         }
         ctx.setContentType("text/html; charset=UTF-8");
         return listPageShell(sw.toString().replace("</", "<\\/"));
@@ -267,8 +285,11 @@ public class VarHeimdal {
         serializer.serialize(sw, json, "application/json");
 
         if (wantsJson()) {
+            injectNav(json);
+            java.io.StringWriter sw2 = new java.io.StringWriter();
+            serializer.serialize(sw2, json, "application/json");
             ctx.setContentType("application/json; charset=UTF-8");
-            return sw.toString();
+            return sw2.toString();
         }
         ctx.setContentType("text/html; charset=UTF-8");
         return pageShell(sw.toString().replace("</", "<\\/"));

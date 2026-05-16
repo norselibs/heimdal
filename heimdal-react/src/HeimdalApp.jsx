@@ -1,13 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Routes, Route } from 'react-router-dom';
+import { useNavigate, useLocation, Routes, Route, Link } from 'react-router-dom';
 import HeimdalForm from './HeimdalForm.jsx';
 import HeimdalList from './HeimdalList.jsx';
 
-/**
- * Top-level app shell. Fetches the Heimdal schema from the current path
- * and renders either a form or a list based on what comes back.
- */
-function HeimdalPage() {
+function Nav({ appName, items, currentPath }) {
+  if (!appName && (!items || items.length === 0)) return null;
+  return (
+    <nav className="hm-nav">
+      {appName && (
+        <span className="hm-nav-brand" dangerouslySetInnerHTML={{ __html: appName }} />
+      )}
+      {(items ?? []).map(item => {
+        const active = currentPath === item.url || currentPath.startsWith(item.url + '/');
+        return (
+          <Link
+            key={item.url}
+            to={item.url}
+            className={'hm-nav-item' + (active ? ' hm-nav-item--active' : '')}
+          >
+            {item.iconHtml && (
+              <span dangerouslySetInnerHTML={{ __html: item.iconHtml }} />
+            )}
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function HeimdalPage({ nav, setNav }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [schema, setSchema] = useState(null);
@@ -17,14 +39,20 @@ function HeimdalPage() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetch(location.pathname + location.search, {
-      headers: { 'Accept': 'application/json' }
-    })
+    const sep = location.search ? '&' : '?';
+    fetch(location.pathname + location.search + sep + 'format=json')
       .then(r => {
         if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
         return r.json();
       })
-      .then(s => { setSchema(s); setLoading(false); })
+      .then(s => {
+        // Extract nav data once and share across page transitions
+        if (s.appName || s.navItems) {
+          setNav({ appName: s.appName, items: s.navItems });
+        }
+        setSchema(s);
+        setLoading(false);
+      })
       .catch(e => { setError(e.message); setLoading(false); });
   }, [location.pathname, location.search]);
 
@@ -38,9 +66,17 @@ function HeimdalPage() {
 }
 
 export default function HeimdalApp() {
+  const [nav, setNav] = useState({ appName: null, items: [] });
+  const location = useLocation();
+
   return (
-    <Routes>
-      <Route path="*" element={<HeimdalPage />} />
-    </Routes>
+    <>
+      <Nav appName={nav.appName} items={nav.items} currentPath={location.pathname} />
+      <div className="hm-page">
+        <Routes>
+          <Route path="*" element={<HeimdalPage nav={nav} setNav={setNav} />} />
+        </Routes>
+      </div>
+    </>
   );
 }
