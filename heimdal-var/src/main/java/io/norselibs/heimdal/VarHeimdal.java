@@ -159,11 +159,32 @@ public class VarHeimdal {
         return dispatch(builder.autoBuild());
     }
 
+    /** Auto-form with field-level overrides applied on top of annotation-driven defaults. */
+    public <T> Object autoForm(Class<T> clazz, String submitUrl,
+                                Consumer<AutoOverride<T>> overrides) throws Exception {
+        T initialValue = clazz.getDeclaredConstructor().newInstance();
+        var builder = Form.of(clazz, initialValue);
+        builder.submitUrl(submitUrl);
+        var ao = new AutoOverride<>(builder.proxyInstance, builder.queryWrapper);
+        overrides.accept(ao);
+        return dispatch(builder.autoBuild(ao));
+    }
+
     /** Auto-form with an existing entity for initial values. */
     public <T> Object autoForm(Class<T> clazz, T initialValue, String submitUrl) throws Exception {
         var builder = Form.of(clazz, initialValue);
         builder.submitUrl(submitUrl);
         return dispatch(builder.autoBuild());
+    }
+
+    /** Auto-form with an existing entity and field-level overrides. */
+    public <T> Object autoForm(Class<T> clazz, T initialValue, String submitUrl,
+                                Consumer<AutoOverride<T>> overrides) throws Exception {
+        var builder = Form.of(clazz, initialValue);
+        builder.submitUrl(submitUrl);
+        var ao = new AutoOverride<>(builder.proxyInstance, builder.queryWrapper);
+        overrides.accept(ao);
+        return dispatch(builder.autoBuild(ao));
     }
 
     /**

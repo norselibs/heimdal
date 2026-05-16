@@ -337,6 +337,33 @@ public class SuspensionSection {
 }
 ```
 
+### Auto-form overrides
+
+When the auto-inferred defaults aren't quite right for specific fields, pass an override consumer. Overrides are applied **on top of** annotation-driven defaults — you only state what differs:
+
+```java
+vh.autoForm(Bike.class, "/bikes/save", o -> {
+    o.field(Bike::getName).label("Bicycle Name").minLength(3).maxLength(50);
+    o.field(Bike::getSuspensionTravel).validateOnBlur();
+});
+
+// Edit form with the same overrides:
+vh.autoForm(Bike.class, existingBike, "/bikes/save", o ->
+    o.field(Bike::getName).label("Bicycle Name").minLength(3)
+);
+```
+
+Available override methods: `label`, `required`, `readonly`, `multiline`, `component`, `validateOnBlur`, `validate(Validator)`, `validate(message, q -> ...)`, `minLength`, `maxLength`.
+
+For DTO-structure sections (nested complex types), add a visibility predicate that otherwise defaults to always-visible:
+
+```java
+vh.autoForm(BikeFormDto.class, "/save", o ->
+    o.sectionWhen(BikeFormDto::getSuspension,
+                  q -> q.eq(BikeFormDto::getBikeType, BikeType.MOUNTAIN))
+);
+```
+
 ### Annotation registry
 
 Third-party annotations (Bean Validation, Spring, etc.) can be mapped to the same actions via `AnnotationRegistry`. Heimdal's own annotations are pre-registered; adapters add theirs at startup:

@@ -68,7 +68,12 @@ public class BikeFormController {
 
     @Controller(path = "/bikes/auto")
     public Object newBikeAuto(VarHeimdal vh) throws Exception {
-        return vh.autoForm(Bike.class, "/bikes/save");
+        return vh.autoForm(Bike.class, "/bikes/save", o -> {
+            // Override label and add validators on top of annotation-driven defaults
+            o.field(Bike::getName).label("Bicycle Name").minLength(3).maxLength(50);
+            // Add blur validation to suspensionTravel (annotation already sets label/required)
+            o.field(Bike::getSuspensionTravel).validateOnBlur();
+        });
     }
 
     @Controller(path = "/bikes/save", httpMethods = HttpMethod.POST)
@@ -103,7 +108,9 @@ public class BikeFormController {
 
     @Controller(path = "/bikes/{id}/auto")
     public Object editBikeAuto(@PathVariable(name = "id") int id, VarHeimdal vh) throws Exception {
-        return vh.autoForm(Bike.class, findById(id), "/bikes/" + id + "/save");
+        return vh.autoForm(Bike.class, findById(id), "/bikes/" + id + "/save", o ->
+            o.field(Bike::getName).label("Bicycle Name").minLength(3).maxLength(50)
+        );
     }
 
     @Controller(path = "/bikes/{id}/save", httpMethods = HttpMethod.POST)

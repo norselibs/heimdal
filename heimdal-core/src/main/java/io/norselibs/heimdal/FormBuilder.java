@@ -119,13 +119,18 @@ public class FormBuilder<T> {
      * </ul>
      */
     public FormDefinition<T> autoBuild() {
+        return autoBuild(null);
+    }
+
+    public FormDefinition<T> autoBuild(AutoOverride<T> overrides) {
         for (Property<?> property : typeDescriber.allFields()) {
-            autoAddProperty(property, clazz.clazz, initialValue);
+            autoAddProperty(property, clazz.clazz, initialValue, overrides);
         }
         return build();
     }
 
-    private void autoAddProperty(Property<?> property, Class<?> ownerClass, Object ownerValue) {
+    private void autoAddProperty(Property<?> property, Class<?> ownerClass, Object ownerValue,
+                                  AutoOverride<T> overrides) {
         Annotation[] annotations = fieldAnnotations(ownerClass, property.getToken().camelHump());
         for (Annotation a : annotations) {
             if (a instanceof HmExclude) return;
@@ -136,14 +141,16 @@ public class FormBuilder<T> {
             var def = new FieldDefinition(property, safeGet(property, ownerValue));
             FieldDefConfig config = new FieldDefConfig(def);
             AnnotationRegistry.applyAll(annotations, config);
+            // Apply per-field overrides on top of annotation-driven defaults
+            if (overrides != null) overrides.applyField(def.getName(), def);
             if (!config.excluded) items.add(def);
         } else {
-            autoAddSection(property, ownerValue);
+            autoAddSection(property, ownerValue, overrides);
         }
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private void autoAddSection(Property<?> property, Object ownerValue) {
+    private void autoAddSection(Property<?> property, Object ownerValue, AutoOverride<T> overrides) {
         Object nestedValue = safeGet(property, ownerValue);
         Class<?> nestedClass = property.getType().clazz;
         TypeDescriber nestedDescriber = TypeDescriberImpl.getTypeDescriber(nestedClass);
@@ -165,7 +172,11 @@ public class FormBuilder<T> {
         if (!sectionFields.isEmpty()) {
             String sectionId = "s" + sectionCounter.getAndIncrement();
             String label = titleCase(property.getToken().humanReadable());
-            items.add(new SectionDefinition(sectionId, label, null, sectionFields));
+            // Use override predicate if provided, otherwise always visible (null)
+            var predicate = overrides != null
+                    ? overrides.sectionPredicate(property.getToken().camelHump())
+                    : null;
+            items.add(new SectionDefinition(sectionId, label, predicate, sectionFields));
         }
     }
 
