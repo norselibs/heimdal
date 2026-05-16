@@ -584,6 +584,24 @@ setErrors(messages: string[])      // display or clear inline errors
 
 `hm-form` creates the component tree from the embedded JSON, wires validate events, evaluates visibility predicates, and handles submit. Load `fields.js` before `hm-form.js`.
 
+## Detail pages
+
+A read-only view of a single entity. All fields are auto-generated as readonly. Use `link()` lambdas to add GET navigation links:
+
+```java
+@Controller(path = "/bikes/{id}/detail")
+public Object detail(@PathVariable(name = "id") int id, VarHeimdal vh) throws Exception {
+    return vh.detail(Bike.class, findById(id),
+        f -> f.link("Edit", "/bikes/" + id + "/edit"),
+        f -> f.link("Back", "/bikes")
+    );
+}
+```
+
+`link()` produces an `<a href="url">` element styled as an outlined button. `action()` produces a `<button>` that POSTs — both can appear together on the same page.
+
+Field labels, order, and sections are derived from the model and its annotations, exactly as in `autoForm`. Annotations like `@HmReadonly` on the model are respected, though they're redundant since `detail()` forces all fields readonly.
+
 ## Navigation menu
 
 Configure a global nav bar once at app startup. It appears on every form and list page.

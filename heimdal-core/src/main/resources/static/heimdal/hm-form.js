@@ -36,7 +36,13 @@ class HmForm extends HTMLElement {
         const actions = document.createElement('div');
         actions.className = 'hm-actions';
         for (const action of this.#schema.actions ?? []) {
-            if (action.type === 'submit') {
+            if (action.type === 'link') {
+                const a = document.createElement('a');
+                a.href = action.url ?? '#';
+                a.textContent = action.label;
+                a.className = 'hm-link-action';
+                actions.append(a);
+            } else if (action.type === 'submit') {
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.textContent = action.label;

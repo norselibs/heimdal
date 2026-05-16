@@ -154,6 +154,23 @@ hm-form .hm-actions button[type=submit] {
     transition: background-color .2s, box-shadow .2s;
 }
 
+a.hm-link-action {
+    display: inline-block;
+    padding: 0 16px;
+    height: 36px;
+    line-height: 36px;
+    font-size: .875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    text-decoration: none;
+    color: #2196f3;
+    border: 1px solid rgba(33,150,243,.5);
+    border-radius: 2px;
+}
+
+a.hm-link-action:hover { background: rgba(33,150,243,.08); }
+
 hm-form .hm-actions button[type=submit]:hover {
     background-color: #1e88e5;
     box-shadow: 0 4px 5px rgba(0,0,0,.14), 0 1px 10px rgba(0,0,0,.12), 0 2px 4px -1px rgba(0,0,0,.2);

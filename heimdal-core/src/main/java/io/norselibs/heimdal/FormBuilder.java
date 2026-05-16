@@ -47,6 +47,12 @@ public class FormBuilder<T> {
         this.sectionCounter = new AtomicInteger(0);
     }
 
+    /** Adds a GET navigation link rendered as {@code <a href="url">} on detail and form pages. */
+    public FormBuilder<T> link(String label, String url) {
+        actions.add(new FormActionDef(label, url, true));
+        return this;
+    }
+
     public ActionBuilder<T> action(String label, String url) {
         var def = new FormActionDef(label, url);
         actions.add(def);
@@ -120,6 +126,25 @@ public class FormBuilder<T> {
      */
     public FormDefinition<T> autoBuild() {
         return autoBuild(null);
+    }
+
+    /**
+     * Auto-generates all fields as read-only. Used by {@code vh.detail()}.
+     * Clears any items added before this call so lambdas may safely call
+     * {@code link()} without accidentally contributing fields.
+     */
+    public FormDefinition<T> autoBuildReadonly() {
+        items.clear(); // discard anything added by prior lambda calls (e.g. accidental field())
+        for (Property<?> property : typeDescriber.allFields()) {
+            autoAddProperty(property, clazz.clazz, initialValue, null);
+        }
+        // Force all generated fields (including inside sections) to readonly
+        for (var item : items) {
+            if (item instanceof FieldDefinition fd) fd.setReadonly(true);
+            else if (item instanceof SectionDefinition sd)
+                sd.getFields().forEach(f -> f.setReadonly(true));
+        }
+        return build();
     }
 
     public FormDefinition<T> autoBuild(AutoOverride<T> overrides) {

@@ -31,6 +31,7 @@ public class BikeFormController {
                 l -> l.column(Bike::getSuspensionTravel).label("Travel (mm)"),
                 l -> l.column(Bike::getNotes),
                 l -> l.action("New bike", "/bikes/new"),
+                l -> l.rowAction("View", bike -> "/bikes/" + bike.getId() + "/detail"),
                 l -> l.rowAction("Edit", bike -> "/bikes/" + bike.getId() + "/edit")
         );
     }
@@ -46,6 +47,14 @@ public class BikeFormController {
     // -------------------------------------------------------------------------
     // Create
     // -------------------------------------------------------------------------
+
+    @Controller(path = "/bikes/{id}/detail")
+    public Object detailBike(@PathVariable(name = "id") int id, VarHeimdal vh) throws Exception {
+        return vh.detail(Bike.class, findById(id),
+                f -> f.link("Edit", "/bikes/" + id + "/edit"),
+                f -> f.link("Back", "/bikes")
+        );
+    }
 
     @Controller(path = "/bikes/new")
     public Object newBike(VarHeimdal vh) throws Exception {

@@ -159,6 +159,25 @@ public class VarHeimdal {
         return dispatch(builder.autoBuild());
     }
 
+    /**
+     * Read-only detail view of a single entity — all fields auto-generated as readonly.
+     * Use {@code link()} lambdas to add GET navigation links (Edit, Back, etc.):
+     *
+     * <pre>
+     * vh.detail(Bike.class, bike,
+     *     f -> f.link("Edit", "/bikes/" + bike.getId() + "/edit"),
+     *     f -> f.link("Back", "/bikes")
+     * )
+     * </pre>
+     */
+    @SuppressWarnings("unchecked")
+    public <T> Object detail(Class<T> clazz, T entity,
+                              Consumer<Hm<T>>... lambdas) throws Exception {
+        Hm<T> builder = Form.of(clazz, entity);
+        for (Consumer<Hm<T>> l : lambdas) l.accept(builder);
+        return dispatch(builder.autoBuildReadonly());
+    }
+
     /** Auto-form with field-level overrides applied on top of annotation-driven defaults. */
     public <T> Object autoForm(Class<T> clazz, String submitUrl,
                                 Consumer<AutoOverride<T>> overrides) throws Exception {
@@ -393,8 +412,9 @@ public class VarHeimdal {
                         .hm-error { color: crimson; font-size: .875rem; }
                         fieldset.hm-section { border: 1px solid #ddd; padding: 1rem; margin-bottom: 1rem; }
                         fieldset.hm-section legend { font-weight: 600; padding: 0 .4rem; }
-                        .hm-actions { margin-top: 1rem; }
-                        button[type=submit] { padding: .5rem 1.5rem; font-size: 1rem; cursor: pointer; }
+                        .hm-actions { margin-top: 1rem; display: flex; gap: .5rem; align-items: center; }
+                        button[type=submit], button[type=button] { padding: .5rem 1.5rem; font-size: 1rem; cursor: pointer; }
+                        a.hm-link-action { padding: .5rem 1.5rem; font-size: 1rem; text-decoration: none; color: #333; border: 1px solid #ccc; }
                     </style>
                 </head>
                 <body>
