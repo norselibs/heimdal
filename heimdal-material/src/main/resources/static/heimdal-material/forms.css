@@ -1,0 +1,178 @@
+/*
+ * Heimdal Material — CSS-only reskin for the default field components.
+ *
+ * Targets the existing .hm-field / .hm-label / .hm-error / .hm-section
+ * classes produced by the default fields.js and hm-form.js.
+ * No new web components needed.
+ */
+
+/* Field container */
+.hm-field {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+/* Label — sits above the input in fixed position (Material style without animation) */
+.hm-label {
+    font-size: .75rem;
+    font-weight: 400;
+    color: rgba(0,0,0,.54);
+    letter-spacing: .03em;
+    margin-bottom: 4px;
+}
+
+/* Inputs & textarea — Material bottom-border style */
+.hm-field input[type=text],
+.hm-field input[type=number],
+.hm-field input[type=date],
+.hm-field input[type=email],
+.hm-field textarea,
+.hm-field select {
+    border: none;
+    border-bottom: 1px solid rgba(0,0,0,.42);
+    border-radius: 0;
+    padding: 6px 0;
+    font-size: 1rem;
+    background: transparent;
+    outline: none;
+    width: 100%;
+    transition: border-color .2s;
+    color: rgba(0,0,0,.87);
+}
+
+.hm-field input:focus,
+.hm-field textarea:focus,
+.hm-field select:focus {
+    border-bottom: 2px solid #2196f3;
+}
+
+.hm-field input[readonly],
+.hm-field textarea[readonly],
+.hm-field input[disabled],
+.hm-field select[disabled] {
+    border-bottom-style: dotted;
+    color: rgba(0,0,0,.38);
+    cursor: default;
+}
+
+/* Checkbox — use default browser checkbox, just add spacing */
+.hm-field--checkbox {
+    flex-direction: row;
+    align-items: center;
+    gap: .5rem;
+}
+
+.hm-field--checkbox input[type=checkbox] {
+    width: 18px;
+    height: 18px;
+    border: none;
+    accent-color: #2196f3;
+}
+
+/* Error text */
+.hm-error {
+    font-size: .75rem;
+    color: #f44336;
+    margin-top: 4px;
+    min-height: 1rem;
+}
+
+/* Sections — Material card-like grouping */
+fieldset.hm-section {
+    border: none;
+    border-top: 1px solid rgba(0,0,0,.12);
+    padding: 1.25rem 0 0;
+    margin: 0 0 1.5rem;
+}
+
+fieldset.hm-section legend.hm-section-label {
+    font-size: .6875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: rgba(0,0,0,.54);
+    padding: 0;
+    margin-bottom: .75rem;
+    float: left;
+    width: 100%;
+}
+
+/* Submit button — Material raised primary */
+hm-form .hm-actions button[type=submit] {
+    background-color: #2196f3;
+    color: #fff;
+    border: none;
+    border-radius: 2px;
+    padding: 0 16px;
+    height: 36px;
+    font-size: .875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    cursor: pointer;
+    box-shadow: 0 2px 2px rgba(0,0,0,.14), 0 3px 1px -2px rgba(0,0,0,.12), 0 1px 5px rgba(0,0,0,.2);
+    transition: background-color .2s, box-shadow .2s;
+}
+
+hm-form .hm-actions button[type=submit]:hover {
+    background-color: #1e88e5;
+    box-shadow: 0 4px 5px rgba(0,0,0,.14), 0 1px 10px rgba(0,0,0,.12), 0 2px 4px -1px rgba(0,0,0,.2);
+}
+
+/* List page */
+.hm-list-toolbar { margin-bottom: 1.5rem; }
+
+.hm-list-action {
+    display: inline-block;
+    background-color: #2196f3;
+    color: #fff;
+    border-radius: 2px;
+    padding: 0 16px;
+    height: 36px;
+    line-height: 36px;
+    font-size: .875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    text-decoration: none;
+    margin-right: .5rem;
+    box-shadow: 0 2px 2px rgba(0,0,0,.14), 0 3px 1px -2px rgba(0,0,0,.12), 0 1px 5px rgba(0,0,0,.2);
+}
+
+.hm-table { width: 100%; border-collapse: collapse; }
+
+.hm-table th {
+    font-size: .6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: rgba(0,0,0,.54);
+    padding: .75rem 1rem;
+    border-bottom: 1px solid rgba(0,0,0,.12);
+    text-align: left;
+}
+
+.hm-table td {
+    padding: .875rem 1rem;
+    border-bottom: 1px solid rgba(0,0,0,.07);
+    font-size: .9375rem;
+    color: rgba(0,0,0,.87);
+}
+
+.hm-table tr:hover td { background: rgba(33,150,243,.04); }
+
+.hm-row-actions { white-space: nowrap; }
+
+.hm-row-action {
+    font-size: .75rem;
+    font-weight: 500;
+    color: #2196f3;
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-right: .75rem;
+}
+
+.hm-row-action:hover { color: #1565c0; }

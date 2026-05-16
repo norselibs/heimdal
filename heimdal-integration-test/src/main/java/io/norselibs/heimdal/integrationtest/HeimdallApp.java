@@ -1,6 +1,6 @@
 package io.norselibs.heimdal.integrationtest;
 
-import io.norselibs.heimdal.VarHeimdalParameterHandler;
+import io.norselibs.heimdal.MaterialVarHeimdalParameterHandler;
 import io.odinjector.OdinJector;
 import io.varhttp.Standalone;
 import io.varhttp.VarConfig;
@@ -16,7 +16,7 @@ public class HeimdallApp {
         Standalone standalone = odinJector.getInstance(Standalone.class);
         standalone.configure(config -> {
             config.setObjectFactory(odinJector::getInstance);
-            config.addParameterHandler(VarHeimdalParameterHandler.class);
+            config.addParameterHandler(MaterialVarHeimdalParameterHandler.class);
             config.addController(BikeFormController.class);
             config.addController(StaticController.class);
         });

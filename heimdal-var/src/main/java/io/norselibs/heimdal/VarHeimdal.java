@@ -186,7 +186,7 @@ public class VarHeimdal {
         ));
     }
 
-    private static String listPageShell(String listJson) {
+    protected String listPageShell(String listJson) {
         return """
                 <!DOCTYPE html>
                 <html lang="en">
@@ -217,7 +217,7 @@ public class VarHeimdal {
                 """;
     }
 
-    private static String pageShell(String formJson) {
+    protected String pageShell(String formJson) {
         return """
                 <!DOCTYPE html>
                 <html lang="en">
