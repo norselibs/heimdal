@@ -54,6 +54,24 @@ public class FormDefinition<T> {
     }
 
     /**
+     * Evaluates all section visibility predicates against the current form values.
+     * Called server-side when a {@code triggersUpdate} field changes. Handles predicate
+     * types the client can't evaluate (lte, gte, ltField, gteField, etc.).
+     *
+     * @return map of sectionId → visible
+     */
+    public Map<String, Boolean> handleVisibilityUpdate(Map<String, String> values) {
+        Map<String, Boolean> result = new LinkedHashMap<>();
+        for (ItemDefinition item : items) {
+            if (item instanceof SectionDefinition section) {
+                var pred = section.getVisibleWhen();
+                result.put(section.getId(), pred == null || pred.evaluate(values));
+            }
+        }
+        return result;
+    }
+
+    /**
      * Tries to handle a domain exception using registered {@code onError} handlers.
      * Returns the field errors if a handler matched, or {@code null} if unhandled
      * (caller should rethrow).

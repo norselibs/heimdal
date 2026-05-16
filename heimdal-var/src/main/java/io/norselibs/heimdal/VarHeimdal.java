@@ -181,13 +181,21 @@ public class VarHeimdal {
         Map<String, Object> body = serializer.deserialize(
                 ctx.request().getReader(), Map.class, "application/json");
 
+        String type  = (String) body.getOrDefault("type", "validate");
         String field = (String) body.get("field");
         int seq = ((Number) body.get("seq")).intValue();
-        var errors = def.handleValidate(field, extractValues(body));
+        var values = extractValues(body);
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("seq", seq);
-        response.put("errors", errors);
+
+        if ("update".equals(type)) {
+            // Server re-evaluates ALL section predicates — handles complex predicate
+            // types (lte, gte, ltField, gteField …) that the client can't evaluate.
+            response.put("sections", def.handleVisibilityUpdate(values));
+        } else {
+            response.put("errors", def.handleValidate(field, values));
+        }
         return response;
     }
 

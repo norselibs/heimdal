@@ -97,6 +97,12 @@ class HmForm extends HTMLElement {
             el.addEventListener('change', () => this.#validate(def.name));
         }
 
+        if (def.triggersUpdate === 'blur') {
+            el.addEventListener('blur', () => this.#triggerUpdate(def.name), true);
+        } else if (def.triggersUpdate === 'change') {
+            el.addEventListener('change', () => this.#triggerUpdate(def.name));
+        }
+
         el.addEventListener('change', () => this.#evaluateSections());
         el.addEventListener('input',  () => this.#evaluateSections());
 
@@ -146,6 +152,27 @@ class HmForm extends HTMLElement {
             result[name] = el.value ?? '';
         }
         return result;
+    }
+
+    async #triggerUpdate(fieldName) {
+        const seq = ++this.#seq;
+        let result;
+        try {
+            const res = await fetch(this.#schema.eventEndpoint, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ type: 'update', field: fieldName, seq, values: this.#collectValues() })
+            });
+            result = await res.json();
+        } catch {
+            return;
+        }
+        if (result.seq < this.#seq) return; // stale
+        // Apply server-authoritative section visibility
+        for (const [id, visible] of Object.entries(result.sections ?? {})) {
+            const section = this.querySelector(`[data-hm-section="${id}"]`);
+            if (section) section.hidden = !visible;
+        }
     }
 
     async #validate(fieldName) {

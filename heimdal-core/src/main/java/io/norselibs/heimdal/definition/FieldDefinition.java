@@ -5,6 +5,7 @@ import io.ran.Property;
 import io.norselibs.heimdal.ComponentRegistration;
 import io.norselibs.heimdal.ComponentRegistry;
 import io.norselibs.heimdal.ContextValidator;
+import io.norselibs.heimdal.UpdateTrigger;
 import io.norselibs.heimdal.Validator;
 
 import java.util.ArrayList;
@@ -25,6 +26,7 @@ public class FieldDefinition implements ItemDefinition {
     boolean required = false;
     boolean readonly = false;
     String validateOn = null;
+    UpdateTrigger triggersUpdate = null;
     List<String> validates;
     private final List<Validator> validators = new ArrayList<>();
     private final List<ContextValidator> contextValidators = new ArrayList<>();
@@ -50,6 +52,7 @@ public class FieldDefinition implements ItemDefinition {
     public void setComponent(String c)       { this.component = c; }
     public void setRequired(boolean r)       { this.required = r; }
     public void setReadonly(boolean r)       { this.readonly = r; }
+    public void setTriggersUpdate(UpdateTrigger t) { this.triggersUpdate = t; }
     public void addValidator(Validator v)                  { this.validators.add(v); }
     public List<Validator> getValidators()                 { return validators; }
     public void addContextValidator(ContextValidator cv)   { this.contextValidators.add(cv); }
@@ -73,8 +76,9 @@ public class FieldDefinition implements ItemDefinition {
         m.put("name", name);
         m.put("label", label);
         m.put("value", registration.serialize(initialValue));
-        if (required)  m.put("required", true);
-        if (readonly)  m.put("readonly", true);
+        if (required)         m.put("required", true);
+        if (readonly)         m.put("readonly", true);
+        if (triggersUpdate != null) m.put("triggersUpdate", triggersUpdate.name().toLowerCase());
         if (validateOn != null) {
             m.put("validateOn", validateOn);
             m.put("validates", validates);

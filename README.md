@@ -359,6 +359,45 @@ public void heimdal(@PathVariable(name = "file") String file,
 }
 ```
 
+## Server-driven visibility updates
+
+For predicates that can't be evaluated client-side — database lookups, permission checks, or complex cross-field comparisons like `lteField`/`gteField` — mark the field with `.triggersUpdate()`. When that field changes, the client posts the current form values to the server. The server re-evaluates all section predicates (including those the client can't handle) and returns an authoritative visibility map. The client shows or hides sections accordingly.
+
+```java
+// claimType controls which of four conditional sections is visible.
+// triggersUpdate ensures the server evaluates the predicates,
+// useful when visibility depends on server-side state.
+f -> f.field(Claim::getClaimType).required().triggersUpdate()
+```
+
+### Project default and per-field override
+
+Set the default trigger once at startup:
+
+```java
+// In app startup — fast backend: fire on change (default)
+HeimdallConfig.setDefaultUpdateTrigger(UpdateTrigger.CHANGE);
+
+// Slow backend: wait until the user leaves the field
+HeimdallConfig.setDefaultUpdateTrigger(UpdateTrigger.BLUR);
+```
+
+Override per field:
+
+```java
+f -> f.field(Claim::getCountry).required().triggersUpdate()                    // uses default
+f -> f.field(Claim::getExpensiveField).triggersUpdate(UpdateTrigger.BLUR)      // explicit override
+```
+
+### Wire protocol
+
+```
+Client → POST /claim/new  { type: "update", field: "claimType", seq: 2, values: {...} }
+Server → { seq: 2, sections: { "s1": true, "s2": false, "s3": false } }
+```
+
+The `seq` counter ensures stale responses (superseded by newer events) are discarded.
+
 ## Conditional sections
 
 Section visibility uses the same predicate algebra as Valqueries queries. Simple predicates (`eq`, `neq`, `in`) are serialized to JSON and evaluated client-side — no round trip.

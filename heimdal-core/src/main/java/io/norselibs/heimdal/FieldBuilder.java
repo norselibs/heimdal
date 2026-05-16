@@ -59,6 +59,18 @@ public class FieldBuilder<T> {
         return this;
     }
 
+    /** Triggers a server-side visibility update using the project default trigger (change or blur). */
+    public FieldBuilder<T> triggersUpdate() {
+        def.setTriggersUpdate(HeimdallConfig.defaultUpdateTrigger());
+        return this;
+    }
+
+    /** Triggers a server-side visibility update on the specified event. */
+    public FieldBuilder<T> triggersUpdate(UpdateTrigger trigger) {
+        def.setTriggersUpdate(trigger);
+        return this;
+    }
+
     public FieldBuilder<T> minLength(int min) { return validate(Validators.minLength(min)); }
     public FieldBuilder<T> maxLength(int max) { return validate(Validators.maxLength(max)); }
 

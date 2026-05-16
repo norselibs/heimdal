@@ -138,7 +138,10 @@ public class ClaimFormController {
             }),
 
             // --- Claim type and incident date ---
-            f -> f.field(Claim::getClaimType).required(),
+            // triggersUpdate causes the server to re-evaluate all section predicates
+            // when claimType changes. Useful when predicates involve server-side logic
+            // (database checks, permissions) that the client can't evaluate locally.
+            f -> f.field(Claim::getClaimType).required().triggersUpdate(),
 
             f -> f.dateField(Claim::getIncidentDate).required()
                    .validate("Cannot be in the future",
