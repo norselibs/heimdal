@@ -6,6 +6,47 @@
  * No new web components needed.
  */
 
+/* Nav bar (MUI AppBar) */
+.mui-appbar .hm-nav {
+    display: flex;
+    align-items: center;
+    padding: .25rem 0;
+}
+
+.hm-nav-brand {
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 500;
+    margin-right: 2rem;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.mui-appbar .hm-nav-item {
+    color: rgba(255,255,255,.8);
+    text-decoration: none;
+    padding: .5rem 1rem;
+    font-size: .875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    transition: background .15s;
+}
+
+.mui-appbar .hm-nav-item:hover {
+    background: rgba(255,255,255,.1);
+    color: #fff;
+}
+
+.mui-appbar .hm-nav-item--active {
+    color: #fff;
+    background: rgba(255,255,255,.15);
+}
+
 /* Field container */
 .hm-field {
     display: flex;

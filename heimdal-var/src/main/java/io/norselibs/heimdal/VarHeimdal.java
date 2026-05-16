@@ -35,6 +35,37 @@ public class VarHeimdal {
     /** Extra component script URLs included in every page shell, in registration order. */
     private static final java.util.List<String> componentScripts = new java.util.ArrayList<>();
 
+    // ---- Menu configuration (set once at startup) ----
+    static final java.util.List<MenuItem> menuItems = new java.util.ArrayList<>();
+    static String appNameHtml = null;
+
+    /**
+     * Sets the application name/logo shown at the start of the nav bar.
+     * Accepts arbitrary HTML:
+     * <pre>
+     * VarHeimdal.setAppName("&lt;img src='/logo.svg' height='24'&gt; MyApp");
+     * </pre>
+     */
+    public static void setAppName(String html) {
+        appNameHtml = html;
+    }
+
+    /** Adds a menu item without an icon. */
+    public static void addMenuItem(String label, String url) {
+        menuItems.add(MenuItem.of(label, url));
+    }
+
+    /**
+     * Adds a menu item with an HTML icon injected before the label.
+     * <pre>
+     * VarHeimdal.addMenuItem("Bikes",  "/bikes",  "🚴");
+     * VarHeimdal.addMenuItem("Claims", "/claims", "&lt;i class='material-icons'&gt;assignment&lt;/i&gt;");
+     * </pre>
+     */
+    public static void addMenuItem(String label, String url, String iconHtml) {
+        menuItems.add(MenuItem.of(label, url, iconHtml));
+    }
+
     /**
      * Registers a component JS file to be loaded in every page shell.
      * Call once at app startup for each custom component file.
@@ -50,11 +81,42 @@ public class VarHeimdal {
     protected String extraScriptTags() {
         return componentScripts.stream()
                 .map(s -> "<script type=\"module\" src=\"" + s + "\"></script>")
-                .collect(java.util.stream.Collectors.joining("\n                    "));
+                .collect(Collectors.joining("\n                    "));
     }
 
+    /**
+     * Renders the navigation bar. Override in adapter subclasses for framework-specific
+     * styling (e.g. MUI AppBar in {@link MaterialVarHeimdal}).
+     */
+    protected String renderMenu(String currentPath) {
+        if (menuItems.isEmpty() && appNameHtml == null) return "";
+        var sb = new StringBuilder();
+        sb.append("<nav class=\"hm-nav\">");
+        if (appNameHtml != null) {
+            sb.append("<span class=\"hm-nav-brand\">").append(appNameHtml).append("</span>");
+        }
+        for (MenuItem item : menuItems) {
+            sb.append("<a href=\"").append(item.url())
+              .append("\" class=\"hm-nav-item")
+              .append(item.isActive(currentPath) ? " hm-nav-item--active" : "")
+              .append("\">");
+            if (item.iconHtml() != null) {
+                sb.append("<span class=\"hm-nav-icon\">").append(item.iconHtml()).append("</span>");
+            }
+            sb.append(item.label()).append("</a>");
+        }
+        sb.append("</nav>");
+        return sb.toString();
+    }
+
+    // -------------------------------------------------------------------------
+
     private final ControllerContext ctx;
-    private final Serializer serializer;
+    final Serializer serializer;  // package-private for MaterialVarHeimdal
+
+    protected String currentPath() {
+        return ctx.request().getRequestURI();
+    }
 
     VarHeimdal(ControllerContext ctx, Serializer serializer) {
         this.ctx = ctx;
@@ -97,19 +159,17 @@ public class VarHeimdal {
         return dispatch(builder.autoBuild());
     }
 
+    /** Auto-form with an existing entity for initial values. */
+    public <T> Object autoForm(Class<T> clazz, T initialValue, String submitUrl) throws Exception {
+        var builder = Form.of(clazz, initialValue);
+        builder.submitUrl(submitUrl);
+        return dispatch(builder.autoBuild());
+    }
+
     /**
      * Runs a save handler and applies any matching {@code onError} handlers
      * registered on the form's actions. Returns a 422 with field errors if a
      * handler matched; otherwise returns a redirect to the given URL.
-     *
-     * <pre>
-     * public Object save(@RequestBody Claim claim, VarHeimdal vh) throws Exception {
-     *     return vh.save(claim, formDef, c -> claimService.submit(c), "/claims");
-     * }
-     * </pre>
-     *
-     * The {@code FormDefinition} is obtained by building the form and calling {@code build()}
-     * directly when you need to share it between GET (render) and POST (save).
      */
     public <T> Object save(T model, FormDefinition<T> def,
                            ThrowingConsumer<T> handler, String redirectUrl) throws Exception {
@@ -124,33 +184,10 @@ public class VarHeimdal {
         }
     }
 
-    /** Auto-form with an existing entity for initial values. */
-    public <T> Object autoForm(Class<T> clazz, T initialValue, String submitUrl) throws Exception {
-        var builder = Form.of(clazz, initialValue);
-        builder.submitUrl(submitUrl);
-        return dispatch(builder.autoBuild());
-    }
-
     // -------------------------------------------------------------------------
     // List
     // -------------------------------------------------------------------------
 
-    /**
-     * Explicit list: columns declared via varargs lambdas.
-     *
-     * <pre>
-     * vh.list(Bike.class, bikes,
-     *     l -> l.column(Bike::getName),
-     *     l -> l.column(Bike::getBikeType),
-     *     l -> l.column(Bike::getSuspensionTravel).label("Travel (mm)"),
-     *     l -> l.action("New", "/bikes/new"),
-     *     l -> l.rowAction("Edit", bike -> "/bikes/" + bike.getId())
-     * )
-     * </pre>
-     *
-     * The URL producer in {@code rowAction} may return a {@code String} or any
-     * object whose {@code toString()} yields a URL — including var-http Route objects.
-     */
     @SuppressWarnings("unchecked")
     public <T> Object list(Class<T> clazz, List<T> items,
                            Consumer<ListBuilder<T>>... definitions) throws Exception {
@@ -159,17 +196,6 @@ public class VarHeimdal {
         return renderList(builder.build());
     }
 
-    /**
-     * Auto-list: columns inferred from the DTO's properties and annotations.
-     * Lambdas can still add actions and row actions:
-     *
-     * <pre>
-     * vh.autoList(Bike.class, bikes,
-     *     l -> l.action("New", "/bikes/new"),
-     *     l -> l.rowAction("Edit", bike -> "/bikes/" + bike.getId() + "/edit")
-     * )
-     * </pre>
-     */
     @SuppressWarnings("unchecked")
     public <T> Object autoList(Class<T> clazz, List<T> items,
                                Consumer<ListBuilder<T>>... definitions) throws Exception {
@@ -181,7 +207,7 @@ public class VarHeimdal {
     // -------------------------------------------------------------------------
 
     private <T> String renderList(ListDefinition<T> def) throws Exception {
-        String path = ctx.request().getRequestURI();
+        String path = currentPath();
         String listId = "lst-" + path.replaceFirst("^/", "").replace("/", "-");
 
         java.io.StringWriter sw = new java.io.StringWriter();
@@ -212,8 +238,6 @@ public class VarHeimdal {
         response.put("seq", seq);
 
         if ("update".equals(type)) {
-            // Server re-evaluates ALL section predicates — handles complex predicate
-            // types (lte, gte, ltField, gteField …) that the client can't evaluate.
             response.put("sections", def.handleVisibilityUpdate(values));
         } else {
             response.put("errors", def.handleValidate(field, values));
@@ -222,7 +246,7 @@ public class VarHeimdal {
     }
 
     private <T> String renderPage(FormDefinition<T> def) throws Exception {
-        String path = ctx.request().getRequestURI();
+        String path = currentPath();
         String formId = "frm-" + path.replaceFirst("^/", "").replace("/", "-");
 
         Map<String, Object> json = def.toJson(formId, "");
@@ -246,6 +270,7 @@ public class VarHeimdal {
     }
 
     protected String listPageShell(String listJson) {
+        String path = currentPath();
         return """
                 <!DOCTYPE html>
                 <html lang="en">
@@ -254,7 +279,14 @@ public class VarHeimdal {
                     <title>Heimdal</title>
                     <script type="module" src="/heimdal/hm-list.js"></script>
                     <style>
-                        body { font-family: sans-serif; max-width: 900px; margin: 2rem auto; }
+                        * { box-sizing: border-box; }
+                        body { margin: 0; font-family: sans-serif; }
+                        .hm-nav { display: flex; align-items: center; background: #333; padding: 0 1rem; }
+                        .hm-nav-brand { color: #fff; font-size: 1.05rem; font-weight: 500; padding: .7rem 1.5rem .7rem 0; margin-right: .5rem; text-decoration: none; }
+                        .hm-nav-item { color: rgba(255,255,255,.75); text-decoration: none; padding: .7rem 1rem; font-size: .875rem; font-weight: 500; text-transform: uppercase; letter-spacing: .04em; display: flex; align-items: center; gap: .4rem; }
+                        .hm-nav-item:hover { color: #fff; }
+                        .hm-nav-item--active { color: #fff; box-shadow: inset 0 -2px #fff; }
+                        .hm-content { max-width: 960px; margin: 0 auto; padding: 2rem 1rem; }
                         .hm-list-toolbar { margin-bottom: 1rem; }
                         .hm-list-action { display: inline-block; padding: .4rem 1rem; margin-right: .5rem;
                                           background: #333; color: #fff; text-decoration: none; font-size: .9rem; }
@@ -266,17 +298,21 @@ public class VarHeimdal {
                     </style>
                 </head>
                 <body>
-                    <hm-list>
-                        <script type="application/json">
+                    """ + renderMenu(path) + """
+                    <div class="hm-content">
+                        <hm-list>
+                            <script type="application/json">
                 """ + listJson + """
-                        </script>
-                    </hm-list>
+                            </script>
+                        </hm-list>
+                    </div>
                 </body>
                 </html>
                 """;
     }
 
     protected String pageShell(String formJson) {
+        String path = currentPath();
         return """
                 <!DOCTYPE html>
                 <html lang="en">
@@ -287,7 +323,14 @@ public class VarHeimdal {
                     """ + extraScriptTags() + """
                     <script type="module" src="/heimdal/hm-form.js"></script>
                     <style>
-                        body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; }
+                        * { box-sizing: border-box; }
+                        body { margin: 0; font-family: sans-serif; }
+                        .hm-nav { display: flex; align-items: center; background: #333; padding: 0 1rem; }
+                        .hm-nav-brand { color: #fff; font-size: 1.05rem; font-weight: 500; padding: .7rem 1.5rem .7rem 0; margin-right: .5rem; text-decoration: none; }
+                        .hm-nav-item { color: rgba(255,255,255,.75); text-decoration: none; padding: .7rem 1rem; font-size: .875rem; font-weight: 500; text-transform: uppercase; letter-spacing: .04em; display: flex; align-items: center; gap: .4rem; }
+                        .hm-nav-item:hover { color: #fff; }
+                        .hm-nav-item--active { color: #fff; box-shadow: inset 0 -2px #fff; }
+                        .hm-content { max-width: 640px; margin: 0 auto; padding: 2rem 1rem; }
                         .hm-field { display: flex; flex-direction: column; margin-bottom: 1rem; }
                         .hm-field input, .hm-field select, .hm-field textarea { padding: .4rem; font-size: 1rem; }
                         .hm-error { color: crimson; font-size: .875rem; }
@@ -298,11 +341,14 @@ public class VarHeimdal {
                     </style>
                 </head>
                 <body>
-                    <hm-form>
-                        <script type="application/json">
+                    """ + renderMenu(path) + """
+                    <div class="hm-content">
+                        <hm-form>
+                            <script type="application/json">
                 """ + formJson + """
-                        </script>
-                    </hm-form>
+                            </script>
+                        </hm-form>
+                    </div>
                 </body>
                 </html>
                 """;

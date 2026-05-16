@@ -11,6 +11,11 @@ public class HeimdallApp {
     public static void main(String[] args) {
         int port = args.length > 0 ? Integer.parseInt(args[0]) : 8080;
 
+        // Navigation menu — appears on every page
+        VarHeimdal.setAppName("<strong>Heimdal</strong> Demo");
+        VarHeimdal.addMenuItem("Bikes",  "/bikes",  "🚴");
+        VarHeimdal.addMenuItem("Claims", "/claims", "📋");
+
         // Register project-specific component JS files to be included in every page shell
         VarHeimdal.registerComponentScript("/heimdal/custom-fields.js");
 

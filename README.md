@@ -536,6 +536,25 @@ setErrors(messages: string[])      // display or clear inline errors
 
 `hm-form` creates the component tree from the embedded JSON, wires validate events, evaluates visibility predicates, and handles submit. Load `fields.js` before `hm-form.js`.
 
+## Navigation menu
+
+Configure a global nav bar once at app startup. It appears on every form and list page.
+
+```java
+// In app startup:
+VarHeimdal.setAppName("<strong>MyApp</strong>");          // HTML — include a logo if you want
+VarHeimdal.addMenuItem("Bikes",  "/bikes");               // no icon
+VarHeimdal.addMenuItem("Claims", "/claims", "📋");        // emoji icon
+VarHeimdal.addMenuItem("Reports", "/reports",
+    "<img src='/icons/chart.svg' height='16'>");           // any inline HTML as icon
+```
+
+`iconHtml` is arbitrary HTML injected before the label — emoji, `<img>`, Material Icons `<i>`, or any inline element. Omit it for text-only items.
+
+The active item is detected by prefix-matching the current request URI with a `/` boundary guard: `/bikes/1/edit` highlights the Bikes item, but a hypothetical `/bikes-management` route does not.
+
+The default adapter renders a dark `#333` nav bar. `MaterialVarHeimdal` overrides `renderMenu()` to produce an MUI AppBar. Pages with no menu items registered render no nav element.
+
 ## var-http integration
 
 `heimdal-var` provides `VarHeimdal` (per-request context) and `VarHeimdalParameterHandler` (DI wiring). Add to your project:

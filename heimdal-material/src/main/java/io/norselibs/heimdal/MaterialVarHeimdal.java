@@ -6,10 +6,8 @@ import io.varhttp.Serializer;
 /**
  * MUI CSS-styled variant of {@link VarHeimdal}.
  *
- * Loads MUI CSS from CDN and a small CSS override ({@code /heimdal-material/forms.css})
- * that maps Heimdal's existing field classes to a Material look. The default
- * {@code fields.js} and {@code hm-form.js} web components are unchanged —
- * no new components needed.
+ * Loads MUI CSS from CDN and {@code /heimdal-material/forms.css}.
+ * The default field web components are unchanged — styling is CSS-only.
  *
  * Register at startup instead of {@link VarHeimdalParameterHandler}:
  * <pre>
@@ -23,7 +21,30 @@ public class MaterialVarHeimdal extends VarHeimdal {
     }
 
     @Override
+    protected String renderMenu(String currentPath) {
+        if (menuItems.isEmpty() && appNameHtml == null) return "";
+        var sb = new StringBuilder();
+        sb.append("<div class=\"mui-appbar\"><div class=\"mui-container hm-nav\">");
+        if (appNameHtml != null) {
+            sb.append("<span class=\"hm-nav-brand\">").append(appNameHtml).append("</span>");
+        }
+        for (MenuItem item : menuItems) {
+            sb.append("<a href=\"").append(item.url())
+              .append("\" class=\"hm-nav-item")
+              .append(item.isActive(currentPath) ? " hm-nav-item--active" : "")
+              .append("\">");
+            if (item.iconHtml() != null) {
+                sb.append("<span class=\"hm-nav-icon\">").append(item.iconHtml()).append("</span>");
+            }
+            sb.append(item.label()).append("</a>");
+        }
+        sb.append("</div></div>");
+        return sb.toString();
+    }
+
+    @Override
     protected String pageShell(String formJson) {
+        String path = currentPath();
         return """
                 <!DOCTYPE html>
                 <html lang="en">
@@ -38,6 +59,7 @@ public class MaterialVarHeimdal extends VarHeimdal {
                     <script type="module" src="/heimdal/hm-form.js"></script>
                 </head>
                 <body>
+                    """ + renderMenu(path) + """
                     <div class="mui-container" style="padding-top:2rem">
                         <hm-form>
                             <script type="application/json">
@@ -52,6 +74,7 @@ public class MaterialVarHeimdal extends VarHeimdal {
 
     @Override
     protected String listPageShell(String listJson) {
+        String path = currentPath();
         return """
                 <!DOCTYPE html>
                 <html lang="en">
@@ -64,6 +87,7 @@ public class MaterialVarHeimdal extends VarHeimdal {
                     <script type="module" src="/heimdal/hm-list.js"></script>
                 </head>
                 <body>
+                    """ + renderMenu(path) + """
                     <div class="mui-container" style="padding-top:2rem">
                         <hm-list>
                             <script type="application/json">
