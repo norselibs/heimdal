@@ -28,6 +28,11 @@ public class StaticController {
         serve("/static/heimdal/fields.js", responseStream, responseHeader);
     }
 
+    @Controller(path = "/heimdal/hm-list.js")
+    public void hmList(ResponseStream responseStream, ResponseHeader responseHeader) throws IOException {
+        serve("/static/heimdal/hm-list.js", responseStream, responseHeader);
+    }
+
     private void serve(String resourcePath, ResponseStream responseStream, ResponseHeader responseHeader)
             throws IOException {
         try (InputStream is = getClass().getResourceAsStream(resourcePath)) {

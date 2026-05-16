@@ -152,7 +152,7 @@ public class FormBuilder<T> {
         }
     }
 
-    private static Object safeGet(Property<?> property, Object owner) {
+    static Object safeGet(Property<?> property, Object owner) {
         if (owner == null) return null;
         try {
             Field f = findField(owner.getClass(), property.getToken().camelHump());
@@ -164,7 +164,7 @@ public class FormBuilder<T> {
         return null;
     }
 
-    private static Annotation[] fieldAnnotations(Class<?> cls, String fieldName) {
+    static Annotation[] fieldAnnotations(Class<?> cls, String fieldName) {
         Field f = findField(cls, fieldName);
         return f != null ? f.getAnnotations() : new Annotation[0];
     }

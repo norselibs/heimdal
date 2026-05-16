@@ -1,9 +1,11 @@
 package io.norselibs.heimdal;
 
+import io.ran.Clazz;
 import io.varhttp.ControllerContext;
 import io.varhttp.Serializer;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -79,6 +81,64 @@ public class VarHeimdal {
     }
 
     // -------------------------------------------------------------------------
+    // List
+    // -------------------------------------------------------------------------
+
+    /**
+     * Explicit list: columns declared via varargs lambdas.
+     *
+     * <pre>
+     * vh.list(Bike.class, bikes,
+     *     l -> l.column(Bike::getName),
+     *     l -> l.column(Bike::getBikeType),
+     *     l -> l.column(Bike::getSuspensionTravel).label("Travel (mm)"),
+     *     l -> l.action("New", "/bikes/new"),
+     *     l -> l.rowAction("Edit", bike -> "/bikes/" + bike.getId())
+     * )
+     * </pre>
+     *
+     * The URL producer in {@code rowAction} may return a {@code String} or any
+     * object whose {@code toString()} yields a URL — including var-http Route objects.
+     */
+    @SuppressWarnings("unchecked")
+    public <T> Object list(Class<T> clazz, List<T> items,
+                           Consumer<ListBuilder<T>>... definitions) throws Exception {
+        var builder = new ListBuilder<>(Clazz.of(clazz), items);
+        for (Consumer<ListBuilder<T>> def : definitions) def.accept(builder);
+        return renderList(builder.build());
+    }
+
+    /**
+     * Auto-list: columns inferred from the DTO's properties and annotations.
+     * Lambdas can still add actions and row actions:
+     *
+     * <pre>
+     * vh.autoList(Bike.class, bikes,
+     *     l -> l.action("New", "/bikes/new"),
+     *     l -> l.rowAction("Edit", bike -> "/bikes/" + bike.getId() + "/edit")
+     * )
+     * </pre>
+     */
+    @SuppressWarnings("unchecked")
+    public <T> Object autoList(Class<T> clazz, List<T> items,
+                               Consumer<ListBuilder<T>>... definitions) throws Exception {
+        var builder = new ListBuilder<>(Clazz.of(clazz), items);
+        for (Consumer<ListBuilder<T>> def : definitions) def.accept(builder);
+        return renderList(builder.autoBuild());
+    }
+
+    // -------------------------------------------------------------------------
+
+    private <T> String renderList(ListDefinition<T> def) throws Exception {
+        String path = ctx.request().getRequestURI();
+        String listId = "lst-" + path.replaceFirst("^/", "").replace("/", "-");
+
+        java.io.StringWriter sw = new java.io.StringWriter();
+        serializer.serialize(sw, def.toJson(listId), "application/json");
+
+        ctx.setContentType("text/html; charset=UTF-8");
+        return listPageShell(sw.toString().replace("</", "<\\/"));
+    }
 
     private <T> Object dispatch(FormDefinition<T> def) throws Exception {
         if ("POST".equalsIgnoreCase(ctx.request().getMethod())) {
@@ -124,6 +184,37 @@ public class VarHeimdal {
                 Map.Entry::getKey,
                 e -> e.getValue() != null ? e.getValue().toString() : ""
         ));
+    }
+
+    private static String listPageShell(String listJson) {
+        return """
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Heimdal</title>
+                    <script type="module" src="/heimdal/hm-list.js"></script>
+                    <style>
+                        body { font-family: sans-serif; max-width: 900px; margin: 2rem auto; }
+                        .hm-list-toolbar { margin-bottom: 1rem; }
+                        .hm-list-action { display: inline-block; padding: .4rem 1rem; margin-right: .5rem;
+                                          background: #333; color: #fff; text-decoration: none; font-size: .9rem; }
+                        .hm-table { width: 100%; border-collapse: collapse; }
+                        .hm-table th, .hm-table td { padding: .5rem .75rem; text-align: left;
+                                                       border-bottom: 1px solid #ddd; font-size: .95rem; }
+                        .hm-table th { background: #f5f5f5; font-weight: 600; }
+                        .hm-row-action { margin-right: .5rem; font-size: .875rem; }
+                    </style>
+                </head>
+                <body>
+                    <hm-list>
+                        <script type="application/json">
+                """ + listJson + """
+                        </script>
+                    </hm-list>
+                </body>
+                </html>
+                """;
     }
 
     private static String pageShell(String formJson) {

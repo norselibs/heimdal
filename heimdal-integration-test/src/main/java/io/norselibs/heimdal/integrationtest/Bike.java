@@ -7,6 +7,9 @@ import io.norselibs.heimdal.HmRequired;
 import io.norselibs.heimdal.HmValidateOnBlur;
 
 public class Bike {
+    @HmExclude
+    private int id;
+
     @HmRequired
     private String name;
 
@@ -21,6 +24,9 @@ public class Bike {
     @HmMultiline
     @HmValidateOnBlur
     private String notes;
+
+    public int getId()                         { return id; }
+    public void setId(int id)                  { this.id = id; }
 
     public String getName()                    { return name; }
     public void setName(String name)           { this.name = name; }
