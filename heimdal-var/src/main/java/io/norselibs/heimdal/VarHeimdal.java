@@ -206,13 +206,24 @@ public class VarHeimdal {
 
     // -------------------------------------------------------------------------
 
+    /** True when the client wants JSON rather than the HTML page shell (e.g. a React SPA). */
+    private boolean wantsJson() {
+        String accept = ctx.request().getHeader("Accept");
+        return accept != null && accept.contains("application/json") && !accept.contains("text/html");
+    }
+
     private <T> String renderList(ListDefinition<T> def) throws Exception {
         String path = currentPath();
         String listId = "lst-" + path.replaceFirst("^/", "").replace("/", "-");
+        var json = def.toJson(listId);
 
         java.io.StringWriter sw = new java.io.StringWriter();
-        serializer.serialize(sw, def.toJson(listId), "application/json");
+        serializer.serialize(sw, json, "application/json");
 
+        if (wantsJson()) {
+            ctx.setContentType("application/json; charset=UTF-8");
+            return sw.toString();
+        }
         ctx.setContentType("text/html; charset=UTF-8");
         return listPageShell(sw.toString().replace("</", "<\\/"));
     }
@@ -255,6 +266,10 @@ public class VarHeimdal {
         java.io.StringWriter sw = new java.io.StringWriter();
         serializer.serialize(sw, json, "application/json");
 
+        if (wantsJson()) {
+            ctx.setContentType("application/json; charset=UTF-8");
+            return sw.toString();
+        }
         ctx.setContentType("text/html; charset=UTF-8");
         return pageShell(sw.toString().replace("</", "<\\/"));
     }

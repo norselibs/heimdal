@@ -1,0 +1,193 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 16px;
+  color: #212121;
+}
+
+/* Loading / error states */
+.hm-loading   { padding: 2rem; color: #666; }
+.hm-error-page { padding: 2rem; color: #c62828; }
+
+/* Forms */
+.hm-form { max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+
+.hm-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.25rem;
+}
+
+.hm-label {
+  font-size: .75rem;
+  font-weight: 500;
+  color: #666;
+  margin-bottom: .25rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.hm-field input[type=text],
+.hm-field input[type=number],
+.hm-field input[type=date],
+.hm-field input[type=email],
+.hm-field textarea,
+.hm-field select {
+  border: none;
+  border-bottom: 1px solid rgba(0,0,0,.3);
+  padding: .375rem 0;
+  font-size: 1rem;
+  background: transparent;
+  outline: none;
+  width: 100%;
+}
+
+.hm-field input:focus,
+.hm-field textarea:focus,
+.hm-field select:focus {
+  border-bottom: 2px solid #1976d2;
+}
+
+.hm-field input[readonly],
+.hm-field textarea[readonly] {
+  border-bottom-style: dotted;
+  color: rgba(0,0,0,.4);
+}
+
+.hm-error {
+  font-size: .75rem;
+  color: #c62828;
+  margin-top: .25rem;
+}
+
+/* Sections */
+fieldset.hm-section {
+  border: none;
+  border-top: 1px solid rgba(0,0,0,.1);
+  padding: 1rem 0 0;
+  margin: 0 0 1.25rem;
+}
+
+fieldset.hm-section legend.hm-section-label {
+  font-size: .6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #666;
+  padding: 0 0 .5rem;
+  margin-bottom: .5rem;
+}
+
+/* Actions */
+.hm-actions { margin-top: 1.5rem; display: flex; gap: .75rem; }
+
+.hm-actions button {
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: .5rem 1.25rem;
+  font-size: .875rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.hm-actions button:hover { background: #1565c0; }
+.hm-actions button:disabled { background: #bdbdbd; cursor: default; }
+
+/* Collection field */
+.hm-collection-field { gap: .5rem; }
+
+.hm-collection-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: .5rem 0;
+  font-size: .9rem;
+}
+
+.hm-collection-table th {
+  text-align: left;
+  font-size: .7rem;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: .25rem .5rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.hm-collection-table td { padding: .25rem .5rem; }
+
+.hm-collection-table input {
+  border: none;
+  border-bottom: 1px solid #ccc;
+  padding: .2rem 0;
+  font-size: .9rem;
+  width: 100%;
+  background: transparent;
+  outline: none;
+}
+
+.hm-collection-add {
+  background: none;
+  border: 1px dashed #bbb;
+  color: #1976d2;
+  padding: .3rem .75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: .85rem;
+  margin-top: .25rem;
+}
+
+/* Lists */
+.hm-list { max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
+
+.hm-list-toolbar { margin-bottom: 1.25rem; }
+
+.hm-list-action {
+  display: inline-block;
+  background: #1976d2;
+  color: #fff;
+  text-decoration: none;
+  padding: .4rem 1rem;
+  border-radius: 4px;
+  font-size: .875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-right: .5rem;
+}
+
+.hm-table { width: 100%; border-collapse: collapse; }
+
+.hm-table th {
+  text-align: left;
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: #666;
+  padding: .6rem 1rem;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.hm-table td {
+  padding: .7rem 1rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.hm-table tr:hover td { background: #f5f8ff; }
+
+.hm-row-action {
+  font-size: .8rem;
+  font-weight: 500;
+  color: #1976d2;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-right: .75rem;
+}
