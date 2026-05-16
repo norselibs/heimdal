@@ -63,6 +63,7 @@ public class BikeFormController {
                        .validate(Validators.minLength(3))
                        .validate(Validators.maxLength(50)),
                 f -> f.ratingField(Bike::getRating),
+                f -> f.fileUploadField(Bike::getPhoto).label("Photo").accept("image/*").maxSizeMb(5),
 
                 f -> f.field(Bike::getBikeType).required(),
                 f -> f.section("Suspension",

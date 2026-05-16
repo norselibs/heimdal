@@ -90,6 +90,18 @@ public class FieldBuilder<T> {
         return this;
     }
 
+    /** File upload: restrict accepted MIME types (e.g. {@code "image/*"}, {@code ".pdf"}). */
+    public FieldBuilder<T> accept(String mimeTypes) {
+        def.putJson("accept", mimeTypes);
+        return this;
+    }
+
+    /** File upload: client-side size guard in megabytes. */
+    public FieldBuilder<T> maxSizeMb(int mb) {
+        def.putJson("maxSizeMb", mb);
+        return this;
+    }
+
     public FieldBuilder<T> component(String componentName) {
         def.setComponent(componentName);
         return this;

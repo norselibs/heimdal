@@ -584,6 +584,30 @@ setErrors(messages: string[])      // display or clear inline errors
 
 `hm-form` creates the component tree from the embedded JSON, wires validate events, evaluates visibility predicates, and handles submit. Load `fields.js` before `hm-form.js`.
 
+## File upload
+
+Use `byte[]` in the model — no wrapper type, Jackson decodes base64 to `byte[]` automatically on `@RequestBody` deserialization:
+
+```java
+public class Bike {
+    private byte[] photo;
+    // getter + setter
+}
+```
+
+`fileUploadField()` is generated automatically when `hm-file-upload` is loaded. The component reads the selected file, encodes it as base64, and returns it as the field value:
+
+```java
+f -> f.fileUploadField(Bike::getPhoto)
+       .label("Photo")
+       .accept("image/*")    // restricts the file picker
+       .maxSizeMb(5)         // client-side size guard
+```
+
+The controller receives the model with the bytes already in place — store them wherever suits the application (filesystem, S3, database blob, etc.).
+
+For multiple files, use `List<byte[]>` in the model and a separate `hm-multi-upload` component (future work). For large files, prefer direct upload to object storage with a pre-signed URL rather than routing bytes through the form submission.
+
 ## Detail pages
 
 A read-only view of a single entity. All fields are auto-generated as readonly. Use `link()` lambdas to add GET navigation links:

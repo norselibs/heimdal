@@ -18,17 +18,21 @@ import java.util.regex.Pattern;
 public class FormBuilderSourceGenerator {
 
     // Language-agnostic type name → Java info
-    record TypeMapping(String simpleType, String fqType, String deserializer) {}
+    record TypeMapping(String simpleType, String fqType, String deserializer, String serializer) {}
 
     static final Map<String, TypeMapping> TYPES = new LinkedHashMap<>();
     static {
-        TYPES.put("string",   new TypeMapping("String",        "java.lang.String",       null));
-        TYPES.put("integer",  new TypeMapping("Integer",       "java.lang.Integer",      "Integer::parseInt"));
-        TYPES.put("long",     new TypeMapping("Long",          "java.lang.Long",         "Long::parseLong"));
-        TYPES.put("decimal",  new TypeMapping("BigDecimal",    "java.math.BigDecimal",   "java.math.BigDecimal::new"));
-        TYPES.put("boolean",  new TypeMapping("Boolean",       "java.lang.Boolean",      "Boolean::parseBoolean"));
-        TYPES.put("date",     new TypeMapping("LocalDate",     "java.time.LocalDate",    "java.time.LocalDate::parse"));
-        TYPES.put("datetime", new TypeMapping("LocalDateTime", "java.time.LocalDateTime","java.time.LocalDateTime::parse"));
+        TYPES.put("string",   new TypeMapping("String",        "java.lang.String",        null,                             null));
+        TYPES.put("integer",  new TypeMapping("Integer",       "java.lang.Integer",       "Integer::parseInt",              null));
+        TYPES.put("long",     new TypeMapping("Long",          "java.lang.Long",          "Long::parseLong",                null));
+        TYPES.put("decimal",  new TypeMapping("BigDecimal",    "java.math.BigDecimal",    "java.math.BigDecimal::new",      null));
+        TYPES.put("boolean",  new TypeMapping("Boolean",       "java.lang.Boolean",       "Boolean::parseBoolean",          null));
+        TYPES.put("date",     new TypeMapping("LocalDate",     "java.time.LocalDate",     "java.time.LocalDate::parse",     null));
+        TYPES.put("datetime", new TypeMapping("LocalDateTime", "java.time.LocalDateTime", "java.time.LocalDateTime::parse", null));
+        // byte[] — Base64 serialization; Jackson also handles byte[]↔base64 natively for @RequestBody
+        TYPES.put("bytes",    new TypeMapping("byte[]", "byte[]",
+                "str -> (str == null || str.isEmpty()) ? new byte[0] : java.util.Base64.getDecoder().decode(str)",
+                "bytes -> (bytes == null || bytes.length == 0) ? \"\" : java.util.Base64.getEncoder().encodeToString(bytes)"));
     }
 
     // One entry per (component, type) pair derived from a JS file
@@ -172,6 +176,9 @@ public class FormBuilderSourceGenerator {
                 registrations.append("        ComponentRegistry.register(")
                         .append("ComponentRegistration.forType(").append(tm.fqType()).append(".class)")
                         .append(".component(\"").append(e.componentName()).append("\")");
+                if (tm.serializer() != null) {
+                    registrations.append(".serialize(").append(tm.serializer()).append(")");
+                }
                 if (tm.deserializer() != null) {
                     registrations.append(".deserialize(").append(tm.deserializer()).append(")");
                 }

@@ -282,3 +282,74 @@ class HmCollectionField extends HTMLElement {
     }
 }
 customElements.define('hm-collection-field', HmCollectionField);
+
+// ---------------------------------------------------------------------------
+// hm-file-upload
+//
+// Backed by byte[] in the model. get value() returns a base64 string;
+// Jackson decodes it to byte[] automatically on @RequestBody deserialization.
+// Extra JS properties: accept (MIME filter), maxSizeMb (client-side guard).
+// ---------------------------------------------------------------------------
+
+class HmFileUpload extends HTMLElement {
+    static heimdal = { type: 'bytes', default: true };
+    #data = ''; // base64 string of current selection, or '' if cleared
+
+    get value() { return this.#data; }
+
+    setErrors(messages) {
+        const el = this.querySelector('.hm-error');
+        if (!el) return;
+        el.textContent = messages[0] ?? '';
+        el.hidden = messages.length === 0;
+    }
+
+    static observedAttributes = ['name', 'label', 'value', 'required'];
+    connectedCallback()        { this.#data = this.getAttribute('value') ?? ''; this._render(); }
+    attributeChangedCallback() { if (this.isConnected) { this.#data = this.getAttribute('value') ?? ''; this._render(); } }
+
+    _render() {
+        const label    = this.getAttribute('label') ?? '';
+        const required = this.hasAttribute('required');
+        const accept   = this.accept ?? this.getAttribute('accept') ?? '';
+        const hasFile  = this.#data !== '';
+
+        this.innerHTML = `
+            <div class="hm-field">
+                <span class="hm-label">${label}${required ? ' <span aria-hidden="true">*</span>' : ''}</span>
+                <div class="hm-file-row">
+                    <label class="hm-file-btn">
+                        Choose file
+                        <input type="file"${accept ? ` accept="${accept}"` : ''} style="display:none">
+                    </label>
+                    <span class="hm-file-name">${hasFile ? 'File loaded' : 'No file selected'}</span>
+                    ${hasFile ? '<button type="button" class="hm-file-clear" title="Remove">✕</button>' : ''}
+                </div>
+                <span class="hm-error" hidden></span>
+            </div>`;
+
+        this.querySelector('input[type=file]').addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const maxMb = this.maxSizeMb;
+            if (maxMb && file.size > maxMb * 1024 * 1024) {
+                this.setErrors([`File must be smaller than ${maxMb} MB`]);
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => {
+                // result is "data:<mime>;base64,<data>" — strip the prefix
+                this.#data = reader.result.split(',')[1] ?? '';
+                this.querySelector('.hm-file-name').textContent = file.name;
+                this.setErrors([]);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        this.querySelector('.hm-file-clear')?.addEventListener('click', () => {
+            this.#data = '';
+            this._render();
+        });
+    }
+}
+customElements.define('hm-file-upload', HmFileUpload);

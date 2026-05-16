@@ -412,6 +412,10 @@ public class VarHeimdal {
                         .hm-error { color: crimson; font-size: .875rem; }
                         fieldset.hm-section { border: 1px solid #ddd; padding: 1rem; margin-bottom: 1rem; }
                         fieldset.hm-section legend { font-weight: 600; padding: 0 .4rem; }
+                        .hm-file-row { display: flex; align-items: center; gap: .5rem; margin-top: .25rem; }
+                        .hm-file-btn { background: #eee; border: 1px solid #ccc; padding: .3rem .75rem; border-radius: 2px; cursor: pointer; font-size: .9rem; }
+                        .hm-file-name { font-size: .9rem; color: #555; }
+                        .hm-file-clear { background: none; border: none; cursor: pointer; color: #c00; font-size: 1rem; }
                         .hm-actions { margin-top: 1rem; display: flex; gap: .5rem; align-items: center; }
                         button[type=submit], button[type=button] { padding: .5rem 1.5rem; font-size: 1rem; cursor: pointer; }
                         a.hm-link-action { padding: .5rem 1.5rem; font-size: 1rem; text-decoration: none; color: #333; border: 1px solid #ccc; }

@@ -154,6 +154,23 @@ hm-form .hm-actions button[type=submit] {
     transition: background-color .2s, box-shadow .2s;
 }
 
+/* File upload */
+.hm-file-row { display: flex; align-items: center; gap: .75rem; margin-top: .5rem; }
+
+.hm-file-btn {
+    background: #f5f5f5;
+    border: 1px solid rgba(0,0,0,.23);
+    padding: .375rem .75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: .875rem;
+    white-space: nowrap;
+}
+
+.hm-file-btn:hover { background: #eeeeee; }
+.hm-file-name { font-size: .875rem; color: rgba(0,0,0,.6); }
+.hm-file-clear { background: none; border: none; cursor: pointer; color: #f44336; font-size: 1rem; padding: 0; }
+
 a.hm-link-action {
     display: inline-block;
     padding: 0 16px;
