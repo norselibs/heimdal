@@ -2,7 +2,7 @@
 
 Heimdal is the UI layer in the norselibs stack, sitting alongside [Ran](../ran) (model introspection) and [Valqueries](../valqueries-sql) (persistence).
 
-The goal is to let backend developers define forms, lists, and detail pages from typed Java code, while frontend developers own the component vocabulary as web components. Neither team has to work in the other's domain.
+The goal is to let backend developers define forms from typed Java code while frontend developers own the component vocabulary as web components. Neither team has to work in the other's domain.
 
 ## The problem
 
@@ -28,131 +28,238 @@ Submit goes to a separate URL using whatever the framework provides for JSON des
 ## Modules
 
 ```
-heimdal-core              Framework-agnostic. Form builder, predicate algebra,
-                          component registry, wire protocol types.
+heimdal-core              Framework-agnostic. Form builder, annotation registry,
+                          component registry, code generation, wire protocol types.
                           No dependency on any web framework or JSON library.
 
-heimdal-integration-test  Runnable demo. Wires heimdal-core into var-http.
+heimdal-var               var-http adapter. VarHeimdal (per-request context) and
+                          VarHeimdalParameterHandler (DI integration).
+                          Depends on heimdal-core via api.
+
+heimdal-integration-test  Runnable demo. Wires heimdal-var into a var-http app.
                           Shows what an adapter module for any other framework
                           (Spring, Quarkus) would look like.
 ```
 
 ## Form builder
 
-A form is built by chaining typed method references. Ran intercepts the getter calls to derive property names, types, and labels automatically.
+Each field is declared in its own lambda. The lambda parameter `f` is `Hm<T>` — a generated typed form builder that exposes a method for each registered component:
 
 ```java
-Form.of(Bike.class, new Bike())
-    .field(Bike::getName)
-        .required()
-    .field(Bike::getBikeType)           // enum → hm-select-field with options
-        .required()
-    .section(
-        q -> q.eq(Bike::getBikeType, BikeType.MOUNTAIN),   // visibility predicate
-        section -> section
-            .field(Bike::getSuspensionTravel)
-                .label("Suspension Travel (mm)")
-                .required()
-                .validateOnBlur()
-    )
-    .field(Bike::getNotes)
-        .multiline()                    // String → hm-textarea-field
-        .validateOnBlur()
-    .submitUrl("/bikes")
-    .build();
+vh.form(Bike.class, "/bikes",
+    f -> f.textField(Bike::getName).required(),
+    f -> f.field(Bike::getBikeType).required(),       // enum → hm-select-field automatically
+    f -> f.section(
+        q -> q.eq(Bike::getBikeType, BikeType.MOUNTAIN),
+        s -> s.integerField(Bike::getSuspensionTravel)
+              .label("Suspension Travel (mm)").required().validateOnBlur()
+    ),
+    f -> f.textareaField(Bike::getNotes).validateOnBlur()
+)
 ```
 
-**What the framework infers from Ran** — the developer does not declare these:
-
-| Builder call | Derived automatically |
-|---|---|
-| `Bike::getName` | Type `String` → `hm-text-field`; label "Name" from token |
-| `Bike::getBikeType` | Type `BikeType` (enum) → `hm-select-field`; options from `BikeType.values()` |
-| `Bike::getSuspensionTravel` | Type `int` → `hm-number-field` |
-| `.multiline()` | Overrides component to `hm-textarea-field` |
-| `q -> q.eq(Bike::getBikeType, BikeType.MOUNTAIN)` | Predicate serialized to JSON for client-side evaluation; dependency graph derived for validate events |
-
-**What the developer must state explicitly**:
+Ran intercepts the getter calls to derive property names, types, and labels. The developer only states what can't be inferred:
 
 | Call | Why explicit |
 |---|---|
 | `.required()` | UI concern, not a domain annotation |
 | `.label("...")` | Only when the token-derived label is wrong or needs a unit |
-| `.multiline()` | `String` is ambiguous — could be text or textarea |
 | `.validateOnBlur()` | Developer decides which fields justify a server round-trip |
-| `.submitUrl("/bikes")` | Where the form POSTs on submit |
+
+`vh.form()` dispatches on HTTP method: GET returns the HTML page, POST handles a validate event. Edit forms pass the existing entity as initial values:
+
+```java
+vh.form(Bike.class, existingBike, "/bikes",
+    f -> f.textField(Bike::getName).required(),
+    ...
+)
+```
+
+## Auto-form
+
+When field order and component choices can be fully derived from the model, declare the form in one line. Heimdal walks the DTO's declared fields using Ran's `TypeDescriber` and applies annotation hints:
+
+```java
+@ControllerClass
+public class BikeFormController {
+
+    @Controller(path = "/bikes/auto")
+    public Object autoPage(VarHeimdal vh) throws Exception {
+        return vh.autoForm(Bike.class, "/bikes");
+    }
+}
+```
+
+Annotate the DTO to provide hints:
+
+```java
+public class Bike {
+    @HmRequired
+    private String name;
+
+    @HmRequired
+    private BikeType bikeType;
+
+    @HmLabel("Suspension Travel (mm)")
+    @HmRequired
+    @HmValidateOnBlur
+    private int suspensionTravel;
+
+    @HmMultiline
+    @HmValidateOnBlur
+    private String notes;
+}
+```
+
+Available annotations: `@HmRequired`, `@HmLabel`, `@HmMultiline`, `@HmValidateOnBlur`, `@HmComponent`, `@HmExclude`.
+
+### Sections from DTO structure
+
+A field whose type is not a registered component is treated as a section — its own fields are rendered as a group. This lets the DTO structure express the form structure without annotations:
+
+```java
+public class BikeFormDto {
+    @HmRequired String name;
+    @HmRequired BikeType bikeType;
+    SuspensionSection suspension;   // complex type → always-visible section
+    @HmMultiline String notes;
+}
+
+public class SuspensionSection {
+    @HmLabel("Suspension Travel (mm)") @HmRequired @HmValidateOnBlur
+    int suspensionTravel;
+    String forkBrand;
+}
+```
+
+### Annotation registry
+
+Third-party annotations (Bean Validation, Spring, etc.) can be mapped to the same actions via `AnnotationRegistry`. Heimdal's own annotations are pre-registered; adapters add theirs at startup:
+
+```java
+// In a hypothetical heimdal-spring adapter:
+AnnotationRegistry.register(NotNull.class,  (a, f) -> f.required());
+AnnotationRegistry.register(NotBlank.class, (a, f) -> f.required());
+```
+
+## Component system
+
+### JS is the source of truth
+
+Frontend developers declare component metadata alongside the component implementation:
+
+```javascript
+class HmRatingField extends HTMLElement {
+    // type: language-agnostic name → Java type mapping (see table below)
+    // default: true → register as the canonical component for this Java type
+    static heimdal = { type: 'integer' };   // default: false (opt-in variant)
+
+    get value() { /* return current value as string */ }
+    setErrors(messages) { /* display or clear inline errors */ }
+}
+customElements.define('hm-rating-field', HmRatingField);
+```
+
+Standard components in `fields.js` use `default: true`:
+
+```javascript
+class HmTextField extends HmBaseField {
+    static heimdal = { type: 'string', default: true };
+    ...
+}
+customElements.define('hm-text-field', HmTextField);
+```
+
+### Type mapping
+
+| Heimdal type | Java type |
+|---|---|
+| `string` | `String` |
+| `integer` | `Integer` |
+| `long` | `Long` |
+| `decimal` | `BigDecimal` |
+| `boolean` | `Boolean` |
+| `date` | `LocalDate` |
+| `datetime` | `LocalDateTime` |
+
+A component with `types: ['integer', 'long', 'decimal']` generates one typed method per type (`integerField`, `longField`, `decimalField`). A component with `type: 'string', multiline: true` generates `textareaField()` which sets the component override rather than registering as the String default.
+
+### Code generation
+
+`./gradlew generateFormBuilder` scans all `static/heimdal/*.js` files from every JAR and resource directory on the classpath. It generates `Hm.java` — a typed `FormBuilder` subclass — into `build/generated-sources/heimdal/`. This runs before `compileJava` with no circular dependency.
+
+The generated `Hm<T>` includes:
+- `ComponentRegistry.register(...)` calls for every `default: true` component
+- A typed method per component (`textField`, `integerField`, `ratingField`, ...)
+- A `section()` overload that passes `Hm<T>` to the body, so typed methods are available inside sections
+
+Drop a JS file into `src/main/resources/static/heimdal/` to add project-specific components. The generator picks it up automatically.
+
+### Wiring in Gradle
+
+```groovy
+def generatedSourcesDir = layout.buildDirectory.dir('generated-sources/heimdal')
+
+def generateFormBuilder = tasks.register('generateFormBuilder', JavaExec) {
+    classpath = configurations.runtimeClasspath + sourceSets.main.resources.sourceDirectories
+    mainClass = 'io.norselibs.heimdal.FormBuilderSourceGenerator'
+    args = [generatedSourcesDir.get().asFile.absolutePath]
+    inputs.files(configurations.runtimeClasspath, sourceSets.main.resources.srcDirs)
+    outputs.dir(generatedSourcesDir)
+}
+
+sourceSets.main.java.srcDir generatedSourcesDir
+tasks.named('compileJava') { dependsOn generateFormBuilder }
+```
 
 ## Conditional sections
 
-Section visibility uses the same predicate algebra as Valqueries queries. Simple predicates (`eq`, `neq`, `in`) are serialized to JSON and evaluated client-side — no round trip. Complex predicates fall back to the server.
+Section visibility uses the same predicate algebra as Valqueries queries. Simple predicates (`eq`, `neq`, `in`) are serialized to JSON and evaluated client-side — no round trip.
 
 ```java
-.section(q -> q.eq(Bike::getBikeType, BikeType.MOUNTAIN), section -> section
-    .field(Bike::getSuspensionTravel).required()
+f -> f.section(
+    q -> q.eq(Bike::getBikeType, BikeType.MOUNTAIN),
+    s -> s.integerField(Bike::getSuspensionTravel).required()
 )
 
 // Multiple values
-.section(q -> q.in(Bike::getStatus, Status.ACTIVE, Status.PENDING), section -> section
-    .field(Claim::getExpiryDate).required()
+f -> f.section(
+    q -> q.in(Bike::getStatus, Status.ACTIVE, Status.PENDING),
+    s -> s.dateField(Claim::getExpiryDate).required()
 )
-```
-
-## Component registration
-
-Built-in Java types are pre-registered. Register custom types at startup:
-
-```java
-ComponentRegistry.register(
-    ComponentRegistration.forType(Money.class)
-        .component("hm-money-field")
-        .serialize(m -> m.getAmount().toPlainString())
-        .deserialize(Money::parse)
-        .extraJson((json, field) -> json.put("currency", "USD"))
-        .build()
-);
-```
-
-`hm-form` passes all extra JSON keys as JS properties on the element, so `<hm-money-field>` can read `this.currency` without extra wiring.
-
-For generic types (e.g. `List<Photo>` vs `List<String>`):
-
-```java
-ComponentRegistry.register(
-    ComponentRegistration.forType(Clazz.ofClasses(List.class, Photo.class))
-        .component("hm-photo-upload")
-        .build()
-);
 ```
 
 ## Layout components
 
-Components with no backing field (info panels, dividers, help text) use `.layout()`:
+Non-field elements (info panels, dividers, help text) use `layout()`:
 
 ```java
-.layout("hm-info-panel", props -> props
+f -> f.layout("hm-info-panel", props -> props
     .put("title", "About bike types")
     .put("content", "Mountain bikes have front suspension.")
 )
 ```
 
-These appear in the form definition JSON with a `component` key but no `name`, and are not included in field tracking or validation.
+Layout items appear in the form JSON with a `component` key but no `name` and are excluded from field tracking and validation.
 
 ## Web components contract
 
-Field components (`hm-text-field`, `hm-select-field`, etc.) must implement:
+Field components must implement:
 
 ```javascript
-get value()                // returns current value as a string
-setErrors(messages: string[])  // display or clear inline errors
+get value()                        // returns current value as a string
+setErrors(messages: string[])      // display or clear inline errors
 ```
 
-`hm-form` (the framework's own component) creates the component tree from the JSON definition, wires validate events, evaluates visibility predicates, and handles submit. Load `fields.js` before `hm-form.js` so components are defined before `hm-form` renders.
-
-Reference implementations of all built-in field components are in `heimdal-core/src/main/resources/static/heimdal/fields.js`.
+`hm-form` creates the component tree from the embedded JSON, wires validate events, evaluates visibility predicates, and handles submit. Load `fields.js` before `hm-form.js`.
 
 ## var-http integration
 
-The `heimdal-integration-test` module shows how to wire Heimdal into var-http. The key piece is `VarHeimdal`, a per-request object injected as a controller parameter.
+`heimdal-var` provides `VarHeimdal` (per-request context) and `VarHeimdalParameterHandler` (DI wiring). Add to your project:
+
+```groovy
+implementation 'io.norselibs:heimdal-var:0.1-SNAPSHOT'
+```
 
 **One-time setup** in app startup:
 
@@ -168,16 +275,15 @@ public class BikeFormController {
 
     @Controller(path = "/bikes/new")
     public Object page(VarHeimdal vh) throws Exception {
-        return vh.form(Bike.class, form -> form
-                .field(Bike::getName).required()
-                .field(Bike::getBikeType).required()
-                .section(
-                        q -> q.eq(Bike::getBikeType, BikeType.MOUNTAIN),
-                        section -> section
-                            .field(Bike::getSuspensionTravel).label("Suspension Travel (mm)").required().validateOnBlur()
-                )
-                .field(Bike::getNotes).multiline().validateOnBlur()
-                .submitUrl("/bikes")
+        return vh.form(Bike.class, "/bikes",
+            f -> f.textField(Bike::getName).required(),
+            f -> f.field(Bike::getBikeType).required(),
+            f -> f.section(
+                q -> q.eq(Bike::getBikeType, BikeType.MOUNTAIN),
+                s -> s.integerField(Bike::getSuspensionTravel)
+                      .label("Suspension Travel (mm)").required().validateOnBlur()
+            ),
+            f -> f.textareaField(Bike::getNotes).validateOnBlur()
         );
     }
 
@@ -189,21 +295,13 @@ public class BikeFormController {
 }
 ```
 
-`vh.form()` dispatches on HTTP method: GET returns the HTML page, POST handles a validate event. The submit endpoint (`/bikes`) is a regular MVC method — var-http deserializes `Bike` from the JSON body automatically, just as Spring or Quarkus would.
-
-For edit forms, provide the existing entity as the initial value:
-
-```java
-vh.form(Bike.class, existingBike, form -> form. ...)
-```
-
 ## Running the integration test
 
 ```bash
 ./gradlew :heimdal-integration-test:run
 ```
 
-Open `http://localhost:8080/bikes/new`.
+Open `http://localhost:8080/bikes/new` for the explicit form or `http://localhost:8080/bikes/auto` for the auto-form demo.
 
 ## Further reading
 

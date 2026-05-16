@@ -23,7 +23,7 @@ sourceSets.main.java.srcDir generatedSourcesDir
 tasks.named('compileJava') { dependsOn generateFormBuilder }
 
 dependencies {
-    implementation project(':heimdal-core')
+    implementation project(':heimdal-var')
 
     implementation 'io.var-http:var-core:1.0.3'
     implementation 'io.var-http:var-undertow:1.0.3'

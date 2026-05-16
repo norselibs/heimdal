@@ -62,6 +62,12 @@ public class ComponentRegistry {
         }
     }
 
+    public static boolean isRegistered(Clazz<?> type) {
+        if (byClazz.containsKey(type)) return true;
+        if (type.clazz.isEnum()) return true;
+        return byType.containsKey(type.getBoxed().clazz);
+    }
+
     public static ComponentRegistration<?> resolve(Clazz<?> type) {
         // 1. Exact Clazz match (honours generics)
         ComponentRegistration<?> reg = byClazz.get(type);

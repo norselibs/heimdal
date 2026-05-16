@@ -1,4 +1,4 @@
-package io.norselibs.heimdal.integrationtest;
+package io.norselibs.heimdal;
 
 import io.varhttp.Serializer;
 import io.varhttp.parameterhandlers.IParameterHandler;
@@ -9,10 +9,12 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 
 /**
- * Registers VarHeimdal as an injectable controller parameter.
+ * Registers {@link VarHeimdal} as an injectable controller parameter.
  *
- * OdinJector creates one instance of this matcher (with Serializer injected),
- * which then produces a fresh VarHeimdal per request from the ControllerContext.
+ * Add at startup:
+ * <pre>
+ * config.addParameterHandler(VarHeimdalParameterHandler.class);
+ * </pre>
  */
 public class VarHeimdalParameterHandler implements IParameterHandlerMatcher {
 

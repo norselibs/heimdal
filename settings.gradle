@@ -10,4 +10,5 @@ pluginManagement {
 
 rootProject.name = 'heimdal'
 include ':heimdal-core'
+include ':heimdal-var'
 include ':heimdal-integration-test'

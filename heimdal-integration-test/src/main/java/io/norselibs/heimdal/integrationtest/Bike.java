@@ -1,9 +1,25 @@
 package io.norselibs.heimdal.integrationtest;
 
+import io.norselibs.heimdal.HmExclude;
+import io.norselibs.heimdal.HmLabel;
+import io.norselibs.heimdal.HmMultiline;
+import io.norselibs.heimdal.HmRequired;
+import io.norselibs.heimdal.HmValidateOnBlur;
+
 public class Bike {
+    @HmRequired
     private String name;
+
+    @HmRequired
     private BikeType bikeType;
+
+    @HmLabel("Suspension Travel (mm)")
+    @HmRequired
+    @HmValidateOnBlur
     private int suspensionTravel;
+
+    @HmMultiline
+    @HmValidateOnBlur
     private String notes;
 
     public String getName()                    { return name; }

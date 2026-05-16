@@ -1,5 +1,6 @@
 package io.norselibs.heimdal.integrationtest;
 
+import io.norselibs.heimdal.VarHeimdal;
 import io.varhttp.Controller;
 import io.varhttp.ControllerClass;
 import io.varhttp.HttpMethod;
@@ -22,6 +23,12 @@ public class BikeFormController {
                 ),
                 f -> f.textareaField(Bike::getNotes).validateOnBlur()
         );
+    }
+
+    /** Auto-form: field structure and hints inferred entirely from Bike's annotations. */
+    @Controller(path = "/bikes/auto")
+    public Object autoPage(VarHeimdal vh) throws Exception {
+        return vh.autoForm(Bike.class, "/bikes");
     }
 
     @Controller(path = "/bikes", httpMethods = HttpMethod.POST)

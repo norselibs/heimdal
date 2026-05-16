@@ -1,8 +1,5 @@
-package io.norselibs.heimdal.integrationtest;
+package io.norselibs.heimdal;
 
-import io.norselibs.heimdal.Form;
-import io.norselibs.heimdal.Hm;
-import io.norselibs.heimdal.FormDefinition;
 import io.varhttp.ControllerContext;
 import io.varhttp.Serializer;
 
@@ -14,17 +11,18 @@ import java.util.stream.Collectors;
 /**
  * Per-request Heimdal context injected as a controller parameter by var-http.
  *
- * Each field is defined by its own lambda — the lambda receives Hm&lt;T&gt;
- * so typed component methods are available throughout.
+ * Register at startup:
+ * <pre>
+ * config.addParameterHandler(VarHeimdalParameterHandler.class);
+ * </pre>
  *
+ * Each form field is its own lambda receiving {@link Hm}&lt;T&gt;:
  * <pre>
  * vh.form(Bike.class, "/bikes",
- *     f -> f.field(Bike::getName).required(),
+ *     f -> f.textField(Bike::getName).required(),
  *     f -> f.field(Bike::getBikeType).required(),
- *     f -> f.section(
- *         q -> q.eq(Bike::getBikeType, BikeType.MOUNTAIN),
- *         s -> s.integerField(Bike::getSuspensionTravel).required()
- *     )
+ *     f -> f.section(q -> q.eq(Bike::getBikeType, BikeType.MOUNTAIN),
+ *                    s -> s.integerField(Bike::getSuspensionTravel).required())
  * )
  * </pre>
  */
@@ -37,7 +35,7 @@ public class VarHeimdal {
         this.serializer = serializer;
     }
 
-    /** Form with an explicit submit URL string. */
+    /** Form with an explicit submit URL. */
     @SuppressWarnings("unchecked")
     public <T> Object form(Class<T> clazz, String submitUrl,
                            Consumer<Hm<T>>... definitions) throws Exception {
@@ -48,15 +46,14 @@ public class VarHeimdal {
         return dispatch(builder.build());
     }
 
-    /** Form without a submit URL — useful when submit is handled by a separate endpoint
-     *  and the URL is set via one of the lambdas, or not needed. */
+    /** Form without a submit URL. */
     @SuppressWarnings("unchecked")
     public <T> Object form(Class<T> clazz,
                            Consumer<Hm<T>>... definitions) throws Exception {
         return form(clazz, "", definitions);
     }
 
-    /** Edit-form overload: uses an existing entity for initial field values. */
+    /** Edit-form: existing entity provides initial field values. */
     @SuppressWarnings("unchecked")
     public <T> Object form(Class<T> clazz, T initialValue, String submitUrl,
                            Consumer<Hm<T>>... definitions) throws Exception {
@@ -64,6 +61,21 @@ public class VarHeimdal {
         for (Consumer<Hm<T>> def : definitions) def.accept(builder);
         builder.submitUrl(submitUrl);
         return dispatch(builder.build());
+    }
+
+    /** Auto-form: field structure and config inferred from the DTO's annotations. */
+    public <T> Object autoForm(Class<T> clazz, String submitUrl) throws Exception {
+        T initialValue = clazz.getDeclaredConstructor().newInstance();
+        var builder = Form.of(clazz, initialValue);
+        builder.submitUrl(submitUrl);
+        return dispatch(builder.autoBuild());
+    }
+
+    /** Auto-form with an existing entity for initial values. */
+    public <T> Object autoForm(Class<T> clazz, T initialValue, String submitUrl) throws Exception {
+        var builder = Form.of(clazz, initialValue);
+        builder.submitUrl(submitUrl);
+        return dispatch(builder.autoBuild());
     }
 
     // -------------------------------------------------------------------------

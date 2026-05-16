@@ -1,5 +1,6 @@
 package io.norselibs.heimdal.integrationtest;
 
+import io.norselibs.heimdal.VarHeimdalParameterHandler;
 import io.odinjector.OdinJector;
 import io.varhttp.Standalone;
 import io.varhttp.VarConfig;

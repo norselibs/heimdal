@@ -72,7 +72,7 @@ public class FormDefinition<T> {
         for (ItemDefinition item : items) {
             if (item instanceof SectionDefinition section
                     && section.getFields().contains(field)) {
-                return section.getVisibleWhen().evaluate(values);
+                return section.getVisibleWhen() == null || section.getVisibleWhen().evaluate(values);
             }
         }
         return true;

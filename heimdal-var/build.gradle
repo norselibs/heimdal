@@ -1,0 +1,8 @@
+dependencies {
+    api project(':heimdal-core')
+
+    implementation 'io.var-http:var-core:1.0.3'
+    implementation 'io.var-http:var-serializer-guice:1.0.3'
+    implementation 'javax.inject:javax.inject:1'
+    compileOnly 'javax:javaee-web-api:8.0.1'
+}

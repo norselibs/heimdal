@@ -26,7 +26,8 @@ public class SectionDefinition implements ItemDefinition {
     public Map<String, Object> toJson() {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("section", id);
-        m.put("visibleWhen", visibleWhen.toJson());
+        // null predicate = always visible (auto-form sections with no explicit condition)
+        if (visibleWhen != null) m.put("visibleWhen", visibleWhen.toJson());
         m.put("items", fields.stream().map(FieldDefinition::toJson).collect(Collectors.toList()));
         return m;
     }
